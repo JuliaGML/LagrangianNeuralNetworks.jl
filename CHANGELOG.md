@@ -18,7 +18,7 @@ so that a compat-only bump can be told apart from a rename or a change in result
   GeometricMachineLearning exports for this code; `lagrangian_acceleration` stays unexported. The
   package depends on AbstractNeuralNetworks, NeuralNetworkParameters and SymbolicNeuralNetworks,
   and not on GeometricMachineLearning: the training — `DataLoader`, `Batch`, `train!` — is
-  GeometricMachineLearning's, and the tests, the manual and the scripts load it by explicit names.
+  GeometricMachineLearning's, and the tests and the scripts load it by explicit names.
   Julia 1.12 is the floor, because on Julia 1.11 the gradient of an `LNNLoss` stops with a
   `StackOverflowError` in type inference on macOS and Windows.
 * **Tests in `Float32` and `Float64`.** Every moved testset runs in both precisions and asserts the

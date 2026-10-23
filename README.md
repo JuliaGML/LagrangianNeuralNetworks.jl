@@ -12,8 +12,16 @@ Lagrangian predicts with accelerations in the data, and `VariationalMidpointLoss
 positions only.
 
 The training — the data loader, the batches, the optimiser and `train!` — is
-[GeometricMachineLearning.jl](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s. Load it
-by explicit names beside this package:
+[GeometricMachineLearning.jl](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s. This
+package does not depend on it, so add it yourself. Until GeometricMachineLearning 0.9 is
+registered, add it from its `main` branch:
+
+```julia
+using Pkg
+Pkg.add(url = "https://github.com/JuliaGNI/GeometricMachineLearning.jl", rev = "main")
+```
+
+Then load it by explicit names beside this package:
 
 ```julia
 using LagrangianNeuralNetworks

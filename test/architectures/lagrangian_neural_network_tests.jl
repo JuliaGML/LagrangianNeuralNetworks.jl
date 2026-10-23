@@ -163,8 +163,8 @@ than about how hard the target was.
 """
 function test_lnn_training(T::DataType; n = 1, n_epochs = 30)
     # The width and depth deliberately match the tests above. A different `Chain` length is a fresh
-    # `Zygote` specialisation of the whole loss, which costs 61 s of this file's wall time and buys
-    # nothing: the assertion is that training reduces the loss, and that does not depend on either.
+    # `Zygote` specialisation of the whole loss, which costs compile time and buys nothing: the
+    # assertion is that training reduces the loss, and that does not depend on either.
     arch = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     nn = NeuralNetwork(arch, CPU(), T)
     loss = LNNLoss(arch)

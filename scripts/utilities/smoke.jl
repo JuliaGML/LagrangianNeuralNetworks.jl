@@ -1,8 +1,8 @@
 # The size constants of the reproduction scripts.
 #
-# A reproduction script states two sizes for every constant that costs time: the size the committed
-# result was produced with, and a size that exercises the same code path in seconds. `smoke_size`
-# returns the second when `LNN_SMOKE` is set in the environment, which is what lets the CI job in
+# A reproduction script states two sizes for every constant that costs time: the size that produces
+# the result, and a size that exercises the same code path in seconds. `smoke_size` returns the
+# second when `LNN_SMOKE` is set in the environment, which is what lets the CI job in
 # `.github/workflows/Scripts.yml` prove that a script still runs end to end without training
 # anything. A smoke run establishes that the script executes, and nothing about the result.
 #

@@ -1,6 +1,6 @@
 # The gate for `scripts/`.
 #
-# `scripts/` is three directories with stated purposes:
+# `scripts/` holds up to three directories with stated purposes:
 #
 #   verification/  checks that establish a mathematical claim about the package. Run in full.
 #   reproduction/  the training runs that reproduce a result of the package. Run in smoke mode, at

@@ -3,10 +3,10 @@ using Documenter
 using DocumenterInterLinks
 
 # The training infrastructure — `DataLoader`, `Batch`, `train!` — is GeometricMachineLearning's,
-# and the pages link to it through that package's inventory: the `stable` one, because the site
-# publishes no `dev` inventory.
+# and the pages link to it through that package's `latest/` inventory, which its site builds from
+# its `main` branch.
 links = InterLinks(
-    "GeometricMachineLearning" => "https://juliagni.github.io/GeometricMachineLearning.jl/stable/"
+    "GeometricMachineLearning" => "https://juliagni.github.io/GeometricMachineLearning.jl/latest/"
 )
 
 makedocs(;

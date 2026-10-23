@@ -26,5 +26,5 @@ so that a compat-only bump can be told apart from a rename or a change in result
   Lagrangian `L = m q̇²/2 + cos q` from its closed-form derivatives and compares the acceleration
   with `-sin q / m`, at `m = 1` and `m = 2`, to `10 eps(T)`.
 * **The manual** has the moved Lagrangian neural network page and links to GeometricMachineLearning
-  through its stable inventory.
+  through its `latest` inventory, the one of its `main` branch.
 * **`scripts/reproduction/lnn_pendulum.jl`** runs under `LNN_SMOKE` in the `Scripts` workflow.

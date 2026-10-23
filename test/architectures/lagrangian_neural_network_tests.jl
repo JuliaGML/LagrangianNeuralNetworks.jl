@@ -1,6 +1,7 @@
-using GeometricMachineLearning
-using GeometricMachineLearning: _euler_lagrange_acceleration, lagrangian_acceleration,
-                                params
+using LagrangianNeuralNetworks
+using LagrangianNeuralNetworks: _euler_lagrange_acceleration, lagrangian_acceleration
+using GeometricMachineLearning: Adam, Batch, DataLoader, NetworkLoss, NetworkParameters,
+                                NeuralNetwork, TrainingOptimizer, params, train!
 using LinearAlgebra
 using Test
 using Zygote

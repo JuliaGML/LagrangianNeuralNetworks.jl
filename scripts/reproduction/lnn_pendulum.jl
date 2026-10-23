@@ -4,10 +4,12 @@
 # `LNNLoss` solves the Euler-Lagrange equations of the *learned* Lagrangian for its own acceleration
 # and compares the two, so a decreasing loss means the network is recovering a Lagrangian whose
 # dynamics match the pendulum's.
-using GeometricMachineLearning
+using LagrangianNeuralNetworks
+using GeometricMachineLearning: CPU, Adam, Batch, DataLoader, NeuralNetwork,
+                                TrainingOptimizer, train!
 
-# `smoke_size(full, smoke)` returns the second when GML_SMOKE is set, which is how the CI
-# job runs this script end to end in seconds. See scripts/README.md.
+# `smoke_size(full, smoke)` returns the second when LNN_SMOKE is set, which is how the CI
+# job runs this script end to end in seconds. See utilities/smoke.jl.
 include("../utilities/smoke.jl")
 
 # this contains the Lagrangians and the functions for generating the training data

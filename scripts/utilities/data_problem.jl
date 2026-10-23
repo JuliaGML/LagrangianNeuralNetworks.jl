@@ -1,7 +1,6 @@
 using Zygote
 #using  GeometricIntegrators
 using LinearAlgebra
-using GeometricMachineLearning
 
 #################################################################################################
 # Hamiltomian Dictionary
@@ -65,7 +64,7 @@ function get_LNN_data(nameproblem, num = 10, qq̇min = -1.2, qq̇max = +1.2)
     # Solve the Euler-Lagrange equations for the acceleration. The transpose is load-bearing:
     # `∇q∇q̇L` is indexed `[i, j] = ∂²L/∂qᵢ∂q̇ⱼ` and the chain rule contracts the *first* index with
     # `q̇`. It vanishes for the pendulum, whose position and velocity do not couple, and does not for
-    # a Lagrangian that couples them. `GeometricMachineLearning.LNNLoss` solves the same equation.
+    # a Lagrangian that couples them. `LagrangianNeuralNetworks.LNNLoss` solves the same equation.
     Qdotdot(q, q̇) = inv(∇q̇∇q̇L([q..., q̇...])) *
                     (∇qL([q..., q̇...]) - ∇q∇q̇L([q..., q̇...])' * q̇)
 

@@ -1,0 +1,14 @@
+[deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+GeometricMachineLearning = "194d25b2-d3f5-49f0-af24-c124f4aa80cc"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LagrangianNeuralNetworks = "da14487d-6bdb-4394-b62e-76fc1472c3eb"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[sources]
+GeometricMachineLearning = {url = "https://github.com/JuliaGNI/GeometricMachineLearning.jl", rev = "main"}
+LagrangianNeuralNetworks = {path = ".."}
+
+[compat]
+GeometricMachineLearning = "0.8"

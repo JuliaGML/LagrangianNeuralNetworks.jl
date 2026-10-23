@@ -18,7 +18,7 @@ test_explicit_imports(LagrangianNeuralNetworks;
 
 const NON_PUBLIC_QUALIFIED = (
     :dim,                                         # AbstractNeuralNetworks
-    :Jacobian, :build_nn_function)                # SymbolicNeuralNetworks
+    :Jacobian)                                    # SymbolicNeuralNetworks
 const NON_PUBLIC_IMPORTS = (
     :AbstractExplicitLayer, :Architecture, :dim,  # AbstractNeuralNetworks
     :derivative)                                  # SymbolicNeuralNetworks

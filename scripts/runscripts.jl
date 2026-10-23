@@ -70,7 +70,11 @@ verdict, the elapsed seconds and the captured output.
 function run_script(relative::AbstractString; smoke::Bool, timeout::Real)
     path = joinpath(ROOT, relative)
     environment = copy(ENV)
-    smoke && (environment["LNN_SMOKE"] = "1")
+    if smoke
+        environment["LNN_SMOKE"] = "1"
+    else
+        delete!(environment, "LNN_SMOKE")
+    end
     command = Cmd(`$(Base.julia_cmd()) --startup-file=no --project=$PROJECT $path`;
         dir = dirname(path), env = environment)
 

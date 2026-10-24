@@ -1,10 +1,10 @@
 # The gate for `scripts/`.
 #
-# `scripts/` is three directories with stated purposes:
+# `scripts/` holds up to three directories with stated purposes:
 #
 #   verification/  checks that establish a mathematical claim about the package. Run in full.
-#   reproduction/  the runs that produced the committed network weights and the manual's figures.
-#                  Run in smoke mode, at the small sizes `utilities/smoke.jl` returns.
+#   reproduction/  the training runs that reproduce a result of the package. Run in smoke mode, at
+#                  the small sizes `utilities/smoke.jl` returns.
 #   utilities/     what the other two include, plus the standalone tools. Never run on its own.
 #
 # Every `.jl` file under `verification/` and `reproduction/` is an entry point and is run here,
@@ -39,21 +39,22 @@ const PROJECT = Base.active_project()
 const TIMEOUT_SECONDS = Dict("verification" => 900, "reproduction" => 300)
 
 # The budget for a whole mode, inside `Scripts.yml`'s `timeout-minutes: 90` less what that job
-# spends instantiating. Without it the per-script ceiling does not keep the promise above: 23
+# spends instantiating. Without it the per-script ceiling does not keep the promise above: enough
 # reproduction scripts each entitled to the ceiling outlast any runner, and the job then dies at the
 # runner's timeout with no verdict at all. The driver stops first, and names what it did not reach.
 const BUDGET_SECONDS = 3600
 
 # Empty, and meant to stay that way. An entry here is a script the gate does not cover, so the
 # only honest reason for one is hardware this runner does not have -- never a defect left unfixed.
-# Every GPU script takes its backend from `smoke_size`, runs on the CPU here, and is gated.
 const SKIPPED = Dict{String, String}()
 
 """
-Return every `.jl` file under `dir`, relative to `scripts/` and with `/` separators.
+Return every `.jl` file under `dir`, relative to `scripts/` and with `/` separators, and none
+where `dir` does not exist.
 """
 function entry_points(dir::AbstractString)
     files = String[]
+    isdir(joinpath(ROOT, dir)) || return files
     for (root, _, names) in walkdir(joinpath(ROOT, dir)), name in names
 
         endswith(name, ".jl") &&
@@ -69,7 +70,11 @@ verdict, the elapsed seconds and the captured output.
 function run_script(relative::AbstractString; smoke::Bool, timeout::Real)
     path = joinpath(ROOT, relative)
     environment = copy(ENV)
-    smoke && (environment["GML_SMOKE"] = "1")
+    if smoke
+        environment["LNN_SMOKE"] = "1"
+    else
+        delete!(environment, "LNN_SMOKE")
+    end
     command = Cmd(`$(Base.julia_cmd()) --startup-file=no --project=$PROJECT $path`;
         dir = dirname(path), env = environment)
 

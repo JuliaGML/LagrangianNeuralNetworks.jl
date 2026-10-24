@@ -34,9 +34,9 @@ The two slot derivatives are written out with the chain rule rather than taken w
 ```
 
 both evaluated at the midpoint. Only the *first* derivative of the network with respect to its input
-is then needed, and that comes from a compiled symbolic expression exactly as
-[`hamiltonian_vector_field`](@ref)'s does. Written the other way — a `Zygote.gradient` inside the
-loss — the parameter gradient fails with
+is then needed, and that comes from a compiled symbolic expression exactly as that of
+`hamiltonian_vector_field` of HamiltonianNeuralNetworks.jl does. Written the other way — a
+`Zygote.gradient` inside the loss — the parameter gradient fails with
 `MethodError: no method matching getindex(::IdDict{Any, Any})`.
 
 # Constructor

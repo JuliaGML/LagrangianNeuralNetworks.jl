@@ -36,13 +36,13 @@ expressions with `SymbolicNeuralNetworks.Jacobian` — applied once, and then ag
 and compiled with `build_nn_function`. They are not taken with `Zygote` inside the loss:
 differentiating a loss that itself contains a `Zygote.gradient` with respect to the network
 parameters fails with `MethodError: no method matching getindex(::IdDict{Any, Any})`. This is the
-route [`hamiltonian_vector_field`](@ref) takes, and for the same reason.
+route `hamiltonian_vector_field` of HamiltonianNeuralNetworks.jl takes, and for the same reason.
 
 The compiled functions flatten a batch along the columns — ``(1, 2n\cdot{}B)`` for the gradient and
 ``(2n, 2n\cdot{}B)`` for the Hessian — so both are reshaped before use. Trailing input dimensions
 beyond the first are flattened on the way in and restored on the way out, so an input of size
-``(2n, s, B)``, which is what [`Batch`](@ref) hands the loss, yields an acceleration of size
-``(n, s, B)``.
+``(2n, s, B)``, which is what [`Batch`](@extref GeometricMachineLearning.Batch) hands the loss,
+yields an acceleration of size ``(n, s, B)``.
 """
 function lagrangian_acceleration(arch::LagrangianNeuralNetwork)
     snn = SymbolicNeuralNetwork(arch)

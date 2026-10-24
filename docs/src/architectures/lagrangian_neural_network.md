@@ -8,9 +8,10 @@ equations
     \frac{d}{dt}\frac{\partial{}L}{\partial\dot{q}} = \frac{\partial{}L}{\partial{}q}.
 ```
 
-This is the Lagrangian counterpart of the [Hamiltonian neural network](@ref hnn_architecture): there
-the network is a Hamiltonian and the dynamics come from a Poisson tensor, here the network is a
-Lagrangian and the dynamics come from a variational principle.
+This is the Lagrangian counterpart of the Hamiltonian neural network of
+HamiltonianNeuralNetworks.jl: there the network is a Hamiltonian and the dynamics come from a
+Poisson tensor, here the network is a Lagrangian and the dynamics come from a variational
+principle.
 
 ## The loss
 
@@ -29,8 +30,8 @@ so the acceleration the learned Lagrangian predicts is
                \left( \nabla_qL - (\nabla_q\nabla_{\dot{q}}L)^T\dot{q} \right),
 ```
 
-which is what [`GeometricMachineLearning.lagrangian_acceleration`](@ref) computes and what
-[`GeometricMachineLearning.LNNLoss`](@ref) compares against the data.
+which is what [`LagrangianNeuralNetworks.lagrangian_acceleration`](@ref) computes and what
+[`LagrangianNeuralNetworks.LNNLoss`](@ref) compares against the data.
 
 The transpose is not cosmetic. ``\nabla_q\nabla_{\dot{q}}L`` is indexed
 ``[i, j] = \partial^2L/\partial{}q_i\partial\dot{q}_j``, while the chain rule contracts the *first*
@@ -46,13 +47,13 @@ loss does not work: the parameter gradient then fails with
 `MethodError: no method matching getindex(::IdDict{Any, Any})`. The gradient and Hessian are
 therefore built as symbolic expressions with
 [`SymbolicNeuralNetworks`](https://github.com/JuliaGNI/SymbolicNeuralNetworks.jl) and compiled, so
-that only one differentiation is left for `Zygote` to do. This is the same route
-`hamiltonian_vector_field` takes, and for the same reason.
+that only one differentiation is left for `Zygote` to do. This is the same route that
+`hamiltonian_vector_field` of HamiltonianNeuralNetworks.jl takes, and for the same reason.
 
 ## Training on positions alone
 
-[`GeometricMachineLearning.LNNLoss`](@ref) needs ``\ddot{q}`` in the data. When only positions are
-available, [`GeometricMachineLearning.VariationalMidpointLoss`](@ref) trains the same architecture
+[`LagrangianNeuralNetworks.LNNLoss`](@ref) needs ``\ddot{q}`` in the data. When only positions are
+available, [`LagrangianNeuralNetworks.VariationalMidpointLoss`](@ref) trains the same architecture
 through the discrete Euler–Lagrange equations of the *midpoint discrete Lagrangian*
 
 ```math
@@ -67,9 +68,9 @@ written out rather than taken with a nested `Zygote.gradient`.
 ## Library Functions
 
 ```@docs
-GeometricMachineLearning.LNNLoss
-GeometricMachineLearning.lagrangian_acceleration
-GeometricMachineLearning._euler_lagrange_acceleration
-GeometricMachineLearning.VariationalMidpointLoss
-GeometricMachineLearning._discrete_lagrangian_derivatives
+LagrangianNeuralNetworks.LNNLoss
+LagrangianNeuralNetworks.lagrangian_acceleration
+LagrangianNeuralNetworks._euler_lagrange_acceleration
+LagrangianNeuralNetworks.VariationalMidpointLoss
+LagrangianNeuralNetworks._discrete_lagrangian_derivatives
 ```

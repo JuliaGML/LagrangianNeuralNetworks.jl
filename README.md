@@ -13,7 +13,7 @@ positions only.
 
 The training — the data loader, the batches, the optimiser and `train!` — is
 [GeometricMachineLearning.jl](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s. This
-package does not depend on it, so add it yourself, at version 0.9 or later:
+package does not depend on it, so add it yourself, at version 0.9:
 
 ```julia
 using Pkg

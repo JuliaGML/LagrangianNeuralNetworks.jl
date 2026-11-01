@@ -28,6 +28,10 @@ so that a compat-only bump can be told apart from a rename or a change in result
   element type of its result. A new test solves the Euler–Lagrange equations of the pendulum
   Lagrangian `L = m q̇²/2 + cos q` from its closed-form derivatives and compares the acceleration
   with `-sin q / m`, at `m = 1` and `m = 2`, to `10 eps(T)`.
-* **The manual** has the moved Lagrangian neural network page and links to GeometricMachineLearning
-  through its `latest` inventory, the one of its `main` branch.
+* **The manual** has the moved Lagrangian neural network page and links `Batch` to
+  ReducedComplexityModeling's manual through its `stable` inventory; GeometricMachineLearning 0.9
+  re-exports `Batch` from that package.
+* **`[compat] NeuralNetworkParameters = "0.5.3"`.** GeometricMachineLearning 0.9 needs
+  GeometricOptimizers 0.9.2, which needs NeuralNetworkParameters 0.5.3 or later, so the test
+  environment does not resolve at a lower floor.
 * **`scripts/reproduction/lnn_pendulum.jl`** runs under `LNN_SMOKE` in the `Scripts` workflow.

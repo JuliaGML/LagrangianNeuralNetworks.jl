@@ -41,7 +41,7 @@ route `hamiltonian_vector_field` of HamiltonianNeuralNetworks.jl takes, and for 
 The compiled functions flatten a batch along the columns — ``(1, 2n\cdot{}B)`` for the gradient and
 ``(2n, 2n\cdot{}B)`` for the Hessian — so both are reshaped before use. Trailing input dimensions
 beyond the first are flattened on the way in and restored on the way out, so an input of size
-``(2n, s, B)``, which is what [`Batch`](@extref GeometricMachineLearning.Batch) hands the loss,
+``(2n, s, B)``, which is what [`Batch`](@extref ReducedComplexityModeling.Batch) hands the loss,
 yields an acceleration of size ``(n, s, B)``.
 """
 function lagrangian_acceleration(arch::LagrangianNeuralNetwork)

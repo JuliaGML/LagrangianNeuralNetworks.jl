@@ -2,11 +2,10 @@ using LagrangianNeuralNetworks
 using Documenter
 using DocumenterInterLinks
 
-# The training infrastructure — `DataLoader`, `Batch`, `train!` — is GeometricMachineLearning's,
-# and the pages link to it through that package's `latest/` inventory, which its site builds from
-# its `main` branch.
+# GeometricMachineLearning trains the network on ReducedComplexityModeling's `Batch`, whose
+# docstring is in that package's manual, so the pages link to it through its `stable/` inventory.
 links = InterLinks(
-    "GeometricMachineLearning" => "https://juliagni.github.io/GeometricMachineLearning.jl/latest/"
+    "ReducedComplexityModeling" => "https://juliarcm.github.io/ReducedComplexityModeling.jl/stable/"
 )
 
 makedocs(;

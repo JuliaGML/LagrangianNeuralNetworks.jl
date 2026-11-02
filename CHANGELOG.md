@@ -7,6 +7,22 @@ This package is pre-1.0, so *every* minor release is potentially breaking in the
 so that a compat-only bump can be told apart from a rename or a change in results.
 
 
+## [Unreleased]
+
+### Maintenance
+
+* **Test floors for the merged downgrade check.** The `Downgrade` job resolves `Project.toml` and
+  `test/Project.toml` together at their lower bounds and runs the tests there; two floors of
+  `test/Project.toml` go up so that it passes.
+  * `Zygote = "0.7.5"`, from `"0.7"`. Zygote 0.7.0 to 0.7.4 allow only ForwardDiff 0.10, and
+    GeometricMachineLearning 0.6 and later need ForwardDiff 1, so 0.7.5 is the lowest Zygote that
+    resolves.
+  * `Aqua = "0.8.14"`, from `"0.8"`. On Julia 1.12, the piracy check of Aqua 0.8.13 and earlier
+    stops with `FieldError: type Core.TypeName has no field mt`; Aqua 0.8.14 adapts to the method
+    tables of Julia 1.12. Aqua 0.8.0 also reports 21 method ambiguities of other packages and fails
+    its persistent-task check here.
+
+
 ## [0.1.0] — 2026-11-01
 
 ### New Features

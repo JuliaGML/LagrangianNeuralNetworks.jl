@@ -22,10 +22,11 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
 ## Found while writing the tutorial
 
 The probes below train on the harmonic oscillator, `L(q, q̇) = (q̇² − q²)/2` in one dimension,
-under `Random.seed!(1234)`, with `LagrangianNeuralNetwork(2; width = 4, nhidden = 1)`, Adam with
-`linesearch = 1e-2`, `Batch(20)` and 200 epochs, against GeometricMachineLearning 0.9.0. Each
-number is one draw. "Acceleration error" is the largest `|q̈_NN + q|` on a 21 × 21 grid of
-`[-1, 1]²`; "fit error" is the largest error of the least-squares fit `L ≈ a·NN + b` on that grid.
+under `Random.seed!(1234)`, with `LagrangianNeuralNetwork(2; width = 4, nhidden = 1)`, a
+`TrainingOptimizer` with `algorithm = Adam()` and `linesearch = 1e-2`, `Batch(20)` and 200 epochs,
+against GeometricMachineLearning 0.9.0. Each number is one draw. "Acceleration error" is the
+largest `|q̈_NN + q|` on a 21 × 21 grid of `[-1, 1]²`; "fit error" is the largest error of the
+least-squares fit `L ≈ a·NN + b` on that grid.
 
 ### K2 · With the default activation `tanh`, `LNNLoss` does not learn the harmonic oscillator.
 
@@ -49,9 +50,10 @@ number is one draw. "Acceleration error" is the largest `|q̈_NN + q|` on a 21 �
   On 400 triples `q(0), q(Δt), q(2Δt)` of `q(t) = A cos(t + φ)`, with `A` uniform in `[0.2, 1]`,
   `φ` uniform in `[0, 2π]` and `Δt = 0.1`, the loss goes from 0.071 to 3.6e-4 with `tanh`, and the
   acceleration error of the trained network is 21.8. The loss divides by `‖[D₂L_d; D₁L_d]‖`, so it
-  is scale-invariant, and a Lagrangian that is a total time derivative, `g(q)·q̇`, makes the
-  discrete Euler–Lagrange residual vanish for any data. Nothing in the loss excludes it. With
-  softplus the loss ends at 2.0e-4 and the acceleration error is 0.17.
+  is scale-invariant. A Lagrangian that is a total time derivative, `g(q)·q̇`, makes the discrete
+  Euler–Lagrange residual vanish for any data when `g` is affine, and leaves a residual of order
+  `Δt³` along a smooth trajectory otherwise. Nothing in the loss excludes it. With softplus the
+  loss ends at 2.0e-4 and the acceleration error is 0.17.
 
 ### K4 · The learned Lagrangian is not the true one beyond scale and offset, even where the dynamics are learned.
 
@@ -59,8 +61,9 @@ number is one draw. "Acceleration error" is the largest `|q̈_NN + q|` on a 21 �
 - **kind:** docs
 - **found:** 2026-11-03
 - **evidence:**
-  In the softplus run of K2 the fit error is 0.53, and in the softplus run of K3 it is 0.51, on a
-  grid where `L` itself ranges over `[-0.5, 0.5]`. A Lagrangian is unique at best up to a factor, a
-  constant and a total time derivative, and in one dimension inequivalent Lagrangians give the
-  same equations of motion. A comparison of the learned and the true Lagrangian is therefore not a
-  measure of the result; the manual does not say so.
+  With softplus, the fit error is 0.53 after `LNNLoss` on 400 uniform samples of `[-1, 1]²` with
+  `q̈ = −q`, and 0.51 after `VariationalMidpointLoss` on 400 triples of `q(t) = A cos(t + φ)` with
+  `Δt = 0.1`, on a grid where `L` itself ranges over `[-0.5, 0.5]`. A Lagrangian is unique at best
+  up to a factor, a constant and a total time derivative, and in one dimension inequivalent
+  Lagrangians give the same equations of motion. A comparison of the learned and the true
+  Lagrangian is therefore not a measure of the result; the manual does not say so.

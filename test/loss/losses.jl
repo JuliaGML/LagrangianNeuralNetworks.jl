@@ -1,5 +1,5 @@
 using LagrangianNeuralNetworks
-using LagrangianNeuralNetworks: LNNLoss, VariationalMidpointLoss
+using LagrangianNeuralNetworks: EulerLagrangeLoss, LNNLoss, VariationalMidpointLoss
 using GeometricMachineLearning: CPU
 using AbstractNeuralNetworks: NeuralNetwork, params
 using Test
@@ -21,7 +21,8 @@ include("../helpers/eltypes.jl")
 
     losses = (
         (LNNLoss(lnn_arch), lnn_arch, lnn_input, lnn_output),
-        (VariationalMidpointLoss(lnn_arch, 0.05), lnn_arch, lnn_input, lnn_output)
+        (VariationalMidpointLoss(lnn_arch, 0.05), lnn_arch, lnn_input, lnn_output),
+        (EulerLagrangeLoss(lnn_arch), lnn_arch, lnn_input, lnn_output)
     )
     for (loss, arch, input, output) in losses
         nn = NeuralNetwork(arch, CPU(), T)

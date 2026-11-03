@@ -34,10 +34,10 @@ The two slot derivatives are written out with the chain rule rather than taken w
 ```
 
 both evaluated at the midpoint. Only the *first* derivative of the network with respect to its input
-is then needed, and that comes from a compiled symbolic expression exactly as that of
-`hamiltonian_vector_field` of HamiltonianNeuralNetworks.jl does. Written the other way — a
-`Zygote.gradient` inside the loss — the parameter gradient fails with
-`MethodError: no method matching getindex(::IdDict{Any, Any})`.
+is then needed, and that comes from the compiled symbolic expression of
+[`LagrangianDerivatives`](@ref), exactly as that of `hamiltonian_vector_field` of
+HamiltonianNeuralNetworks.jl does. Written the other way — a `Zygote.gradient` inside the loss —
+the parameter gradient fails with `MethodError: no method matching getindex(::IdDict{Any, Any})`.
 
 # Constructor
 
@@ -45,7 +45,7 @@ is then needed, and that comes from a compiled symbolic expression exactly as th
 VariationalMidpointLoss(arch, timestep)
 ```
 
-where `arch` is a `LagrangianNeuralNetwork`.
+where `arch` is a [`LagrangianArchitecture`](@ref).
 
 # Functor
 
@@ -56,16 +56,13 @@ loss(ps, input, output) # equivalent to the above
 
 `input` stacks ``q_n`` on ``q_{n+1}`` and so has ``2n`` rows; `output` is ``q_{n+2}`` and has ``n``.
 """
-struct VariationalMidpointLoss{FT, T} <: NetworkLoss
-    gradient::FT
+struct VariationalMidpointLoss{DT <: LagrangianDerivatives, T} <: NetworkLoss
+    derivatives::DT
     timestep::T
 
-    function VariationalMidpointLoss(arch::LagrangianNeuralNetwork, timestep::Real)
-        snn = SymbolicNeuralNetwork(arch)
-        ∇L = derivative(SymbolicNeuralNetworks.Jacobian(snn))
-        grad = SymbolicNeuralNetworks.build_nn_function(
-            ∇L, snn.params, snn.input; inplace = false)
-        new{typeof(grad), typeof(timestep)}(grad, timestep)
+    function VariationalMidpointLoss(arch::LagrangianArchitecture, timestep::Real)
+        D = LagrangianDerivatives(arch)
+        new{typeof(D), typeof(timestep)}(D, timestep)
     end
 end
 
@@ -77,12 +74,12 @@ sample.
 """
 function _discrete_lagrangian_derivatives(loss::VariationalMidpointLoss, ps,
         qa::AbstractMatrix, qb::AbstractMatrix)
-    n, batch_size = size(qa)
+    n = size(qa, 1)
     # The timestep is converted to the data's element type rather than promoted against it: a
     # `Float64` timestep must not widen the loss of a `Float32` network.
     Δt = eltype(qa)(loss.timestep)
     midpoint = vcat((qa + qb) / 2, (qb - qa) / Δt)
-    g = reshape(loss.gradient(midpoint, ps), 2n, batch_size)
+    g = input_gradient(loss.derivatives, midpoint, ps)
     ∇qL = g[1:n, :]
     ∇q̇L = g[(n + 1):(2n), :]
     (Δt / 2) * ∇qL - ∇q̇L, (Δt / 2) * ∇qL + ∇q̇L

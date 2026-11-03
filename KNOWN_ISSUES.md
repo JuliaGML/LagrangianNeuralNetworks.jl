@@ -28,22 +28,9 @@ against GeometricMachineLearning 0.9.0. Each number is one draw. "Acceleration e
 largest `|q̈_NN + q|` on a 21 × 21 grid of `[-1, 1]²`; "fit error" is the largest error of the
 least-squares fit `L ≈ a·NN + b` on that grid.
 
-### K2 · With the default activation `tanh`, `LNNLoss` does not learn the harmonic oscillator.
-
-- **location:** `src/architectures/lagrangian_neural_network.jl:7`
-- **kind:** defect
-- **found:** 2026-11-03
-- **evidence:**
-  On 400 uniform samples of `[-1, 1]²` with `q̈ = −q`, the loss goes from 12.9 to 1.01, and the
-  acceleration error is 21.7. Width 8 for 100 epochs ends at 1.19 with an acceleration error of
-  32.6; `linesearch = 1e-3` ends at 1.66. A loss near 1 is the loss of the prediction `q̈ = 0`. The
-  solve against `∇q̇∇q̇NN` in `_euler_lagrange_acceleration` amplifies every sample where that
-  Hessian is near zero. With `activation = x -> log(1 + exp(x))` and otherwise the same settings,
-  the loss goes from 9.6 to 0.041 and the acceleration error is 0.055.
-
 ### K3 · A small `VariationalMidpointLoss` does not imply the learned dynamics.
 
-- **location:** `src/loss/variational_midpoint_loss.jl:106`
+- **location:** `src/loss/variational_midpoint_loss.jl:103`
 - **kind:** defect
 - **found:** 2026-11-03
 - **evidence:**

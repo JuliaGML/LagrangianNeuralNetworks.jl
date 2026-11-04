@@ -9,6 +9,34 @@ so that a compat-only bump can be told apart from a rename or a change in result
 
 ## [Unreleased]
 
+### Breaking Changes
+
+* **softplus is the default activation of `LagrangianNeuralNetwork`, in place of `tanh`.** This
+  fixes K2: with `tanh`, `LNNLoss` does not learn the 1D harmonic oscillator, and its loss ends near
+  1, the loss of the prediction `q̈ = 0`. `softplus(x) = log(1 + exp(x))` is exported. It overflows
+  to `Inf` above about 709 in `Float64` and about 88 in `Float32`, with no guard.
+  `scripts/reproduction/k2_harmonic_oscillator.jl` trains the oscillator on the seeds 1 to 16 in
+  each precision, and exits 1 when fewer than 14 of a precision end below a loss of 0.25. A network
+  built with the default activation computes other values than before; pass
+  `activation = tanh` for the old network.
+* **The field `gradient` of `VariationalMidpointLoss` is now `derivatives`**, a
+  `LagrangianDerivatives`. The value of the loss is unchanged.
+
+### New Features
+
+* **`LagrangianArchitecture`, the supertype of a Lagrangian architecture.** `LagrangianNeuralNetwork`
+  subtypes it, and `LNNLoss`, `NetworkLoss`, `VariationalMidpointLoss`, `EulerLagrangeLoss` and
+  `lagrangian_acceleration` take any subtype that has a `dim` method and a `Chain`.
+* **`EulerLagrangeLoss`, the Euler–Lagrange residual loss of Offen 2025, App. B.** It is the mean
+  over the samples of `‖∇q̇∇q̇L q̈ + (∇q∇q̇L)ᵀq̇ − ∇qL‖²`, with no solve against the velocity Hessian
+  and no normalisation. The one-sample residual is `_euler_lagrange_residual`, unexported.
+* **`LagrangianDerivatives(arch)`, with `input_gradient` and `input_hessian`, unexported.** They
+  compile the gradient and the Hessian of a scalar network with respect to its input once, for any
+  `Architecture` with a `dim` method, and return `2n × B` and `2n × 2n × B` for an input of size
+  `2n × B`. With `hessian = false`, only the gradient is compiled, and `input_hessian` throws an
+  `ArgumentError`. `lagrangian_acceleration` and `VariationalMidpointLoss` take their derivatives
+  from it, with the values of before; `VariationalMidpointLoss` passes `hessian = false`.
+
 ### Maintenance
 
 * **Test floors for the merged downgrade check.** The `Downgrade` job resolves `Project.toml` and

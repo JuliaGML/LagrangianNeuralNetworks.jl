@@ -68,6 +68,14 @@ written out rather than taken with a nested `Zygote.gradient`.
 ## Library Functions
 
 ```@docs
+LagrangianNeuralNetworks.LagrangianArchitecture
+LagrangianNeuralNetworks.LagrangianNeuralNetwork
+LagrangianNeuralNetworks.softplus
+LagrangianNeuralNetworks.LagrangianDerivatives
+LagrangianNeuralNetworks.input_gradient
+LagrangianNeuralNetworks.input_hessian
+LagrangianNeuralNetworks.EulerLagrangeLoss
+LagrangianNeuralNetworks._euler_lagrange_residual
 LagrangianNeuralNetworks.LNNLoss
 LagrangianNeuralNetworks.lagrangian_acceleration
 LagrangianNeuralNetworks._euler_lagrange_acceleration

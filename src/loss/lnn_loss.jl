@@ -1,5 +1,5 @@
 @doc raw"""
-    lagrangian_acceleration(arch::LagrangianNeuralNetwork)
+    lagrangian_acceleration(arch::LagrangianArchitecture)
 
 Compute an executable expression of the acceleration that the Lagrangian `arch` predicts.
 
@@ -31,34 +31,21 @@ to be symmetric.
 
 # Implementation
 
-The gradient and the Hessian of the network with respect to its input are built as *symbolic*
-expressions with `SymbolicNeuralNetworks.Jacobian` — applied once, and then again to its own result —
-and compiled with `build_nn_function`. They are not taken with `Zygote` inside the loss:
-differentiating a loss that itself contains a `Zygote.gradient` with respect to the network
-parameters fails with `MethodError: no method matching getindex(::IdDict{Any, Any})`. This is the
-route `hamiltonian_vector_field` of HamiltonianNeuralNetworks.jl takes, and for the same reason.
-
-The compiled functions flatten a batch along the columns — ``(1, 2n\cdot{}B)`` for the gradient and
-``(2n, 2n\cdot{}B)`` for the Hessian — so both are reshaped before use. Trailing input dimensions
-beyond the first are flattened on the way in and restored on the way out, so an input of size
-``(2n, s, B)``, which is what [`Batch`](@extref ReducedComplexityModeling.Batch) hands the loss,
-yields an acceleration of size ``(n, s, B)``.
+The gradient and the Hessian of the network with respect to its input come from
+[`LagrangianDerivatives`](@ref), compiled once when `lagrangian_acceleration` is called. Trailing
+input dimensions beyond the first are flattened on the way in and restored on the way out, so an
+input of size ``(2n, s, B)``, which is what [`Batch`](@extref ReducedComplexityModeling.Batch)
+hands the loss, yields an acceleration of size ``(n, s, B)``.
 """
-function lagrangian_acceleration(arch::LagrangianNeuralNetwork)
-    snn = SymbolicNeuralNetwork(arch)
-    ∇L = derivative(SymbolicNeuralNetworks.Jacobian(snn))
-    ∇∇L = derivative(SymbolicNeuralNetworks.Jacobian(∇L, snn))
-    grad = SymbolicNeuralNetworks.build_nn_function(
-        ∇L, snn.params, snn.input; inplace = false)
-    hess = SymbolicNeuralNetworks.build_nn_function(
-        ∇∇L, snn.params, snn.input; inplace = false)
+function lagrangian_acceleration(arch::LagrangianArchitecture)
+    D = LagrangianDerivatives(arch)
     n = dim(arch) ÷ 2
 
     function (input, ps)
         input_matrix = reshape(input, 2n, :)
         batch_size = size(input_matrix, 2)
-        g = reshape(grad(input_matrix, ps), 2n, batch_size)
-        H = reshape(hess(input_matrix, ps), 2n, 2n, batch_size)
+        g = input_gradient(D, input_matrix, ps)
+        H = input_hessian(D, input_matrix, ps)
         acceleration = reduce(hcat,
             [_euler_lagrange_acceleration(H[:, :, b], g[:, b],
                  input_matrix[(n + 1):(2n), b])
@@ -99,7 +86,7 @@ for ``\ddot{q}``.
 
 # Constructor
 
-This can be called with a `LagrangianNeuralNetwork` as its only argument:
+This can be called with a [`LagrangianArchitecture`](@ref) as its only argument:
 ```julia
 LNNLoss(arch)
 ```
@@ -115,11 +102,11 @@ struct LNNLoss{FT} <: NetworkLoss
     acceleration::FT
 end
 
-function LNNLoss(arch::LagrangianNeuralNetwork)
+function LNNLoss(arch::LagrangianArchitecture)
     LNNLoss(lagrangian_acceleration(arch))
 end
 
-AbstractNeuralNetworks.NetworkLoss(arch::LagrangianNeuralNetwork) = LNNLoss(arch)
+AbstractNeuralNetworks.NetworkLoss(arch::LagrangianArchitecture) = LNNLoss(arch)
 
 function (loss::LNNLoss)(::Union{Chain, AbstractExplicitLayer},
         ps::NetworkParameters,

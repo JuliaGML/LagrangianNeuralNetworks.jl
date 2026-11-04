@@ -7,9 +7,11 @@
 
 `LagrangianNeuralNetworks.jl` learns a scalar Lagrangian ``L(q, \dot{q})`` with a neural network
 and takes the dynamics from it through the Euler–Lagrange equations. It exports the architecture
-`LagrangianNeuralNetwork` and two losses: `LNNLoss`, which compares the acceleration the learned
-Lagrangian predicts with accelerations in the data, and `VariationalMidpointLoss`, which needs
-positions only.
+`LagrangianNeuralNetwork`, its supertype `LagrangianArchitecture`, its default activation
+`softplus`, and three losses: `LNNLoss`, which compares the acceleration the learned Lagrangian
+predicts with accelerations in the data, `EulerLagrangeLoss`, which asks the learned Lagrangian to
+satisfy the Euler–Lagrange equations on the same data with no solve, and `VariationalMidpointLoss`,
+which needs positions only.
 
 The training — the data loader, the batches, the optimiser and `train!` — is
 [GeometricMachineLearning.jl](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s. This

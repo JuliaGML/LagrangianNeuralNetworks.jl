@@ -277,7 +277,7 @@ end
         ps, randn(2, 4), randn(2, 4))
 end
 
-# At `n = 2` the determinant and the inverse go through LAPACK, which refuses a matrix with a `NaN`.
+# At `n = 2` the inverse goes through LAPACK, which refuses a matrix with a `NaN`.
 function test_nan_data_propagate(T::DataType, n::Integer)
     nn = random_network(T, n)
     ps = params(nn)
@@ -303,7 +303,7 @@ end
     for n in (1, 2)
         test_nan_data_propagate(T, n)
     end
-    # A matrix with an `Inf` entry gives `NaN` as well, where LAPACK would throw.
+    # A matrix with an `Inf` entry gives `NaN` as well: `det` returns `Inf` there, and `inv` throws.
     for form in (:inverse, :tamed, :sigmoid)
         value = _regularity_penalty(T[Inf 1; 1 1], form)
         @test value isa T

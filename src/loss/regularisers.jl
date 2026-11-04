@@ -71,12 +71,12 @@ function _mixed_hessian(H::AbstractMatrix, Δt)
     Hvv - (Δt / 2) * (Hqv - transpose(Hqv)) - (Δt^2 / 4) * Hqq
 end
 
-# `det(A)`, and `NaN` for an `A` with a `NaN` or an `Inf` entry, which LAPACK refuses with an
-# exception.
+# `det(A)`, and `NaN` for an `A` with a `NaN` or an `Inf` entry, where `det` itself returns `NaN` or
+# `±Inf`: a penalty of such a matrix is then `NaN` in every form.
 _det(A::AbstractMatrix) = all(isfinite, A) ? det(A) : eltype(A)(NaN)
 
-# `‖A⁻¹‖_F²`, `Inf` for a singular `A`, which `inv` refuses with an exception, and `NaN` for an `A`
-# with a `NaN` or an `Inf` entry.
+# `‖A⁻¹‖_F²`, `Inf` for a singular `A`, and `NaN` for an `A` with a `NaN` or an `Inf` entry; `inv`
+# throws for both of these.
 function _inverse_frobenius2(A::AbstractMatrix)
     d = _det(A)
     isnan(d) && return d

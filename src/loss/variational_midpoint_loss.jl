@@ -20,8 +20,19 @@ and the discrete Euler–Lagrange equations ask that
     D_2L_d(q_n, q_{n+1}) + D_1L_d(q_{n+1}, q_{n+2}) = 0 .
 ```
 
-The loss is the norm of that residual, relative to the norm of the two derivatives it is built from,
-so a Lagrangian scaled by a constant gives the same number.
+The loss is the mean over the samples of the squared residual (Ober-Blöbaum & Offen 2023, (16)),
+plus a weighted regularity penalty:
+
+```math
+    \frac{1}{B}\sum_{b=1}^B \left\| D_2L_d(q_n, q_{n+1}) + D_1L_d(q_{n+1}, q_{n+2}) \right\|^2
+        + w\,r(ps, [q_n; q_{n+1}]).
+```
+
+The residual alone does not exclude a null Lagrangian: a constant, or ``g(q)\cdot\dot{q}`` with
+``g = \nabla\varphi`` and ``\varphi`` quadratic, has a discrete residual of zero on any data. The
+default penalty, [`MixedHessianRegulariser`](@ref) in the form `:tamed`, is 1 where the discrete
+Lagrangian is degenerate, as it is for those. The relative normalisation of the source is not
+applied.
 
 # Implementation
 
@@ -33,19 +44,24 @@ The two slot derivatives are written out with the chain rule rather than taken w
     D_2L_d = \frac{\Delta{}t}{2}\nabla_qL + \nabla_{\dot{q}}L,
 ```
 
-both evaluated at the midpoint. Only the *first* derivative of the network with respect to its input
-is then needed, and that comes from the compiled symbolic expression of
+both evaluated at the midpoint. The residual needs only the *first* derivative of the network with
+respect to its input, and that comes from the compiled symbolic expression of
 [`LagrangianDerivatives`](@ref), exactly as that of `hamiltonian_vector_field` of
-HamiltonianNeuralNetworks.jl does. Written the other way — a `Zygote.gradient` inside the loss —
-the parameter gradient fails with `MethodError: no method matching getindex(::IdDict{Any, Any})`.
+HamiltonianNeuralNetworks.jl does; the regulariser compiles its own derivatives. Written the other
+way — a `Zygote.gradient` inside the loss — the parameter gradient fails with
+`MethodError: no method matching getindex(::IdDict{Any, Any})`.
 
 # Constructor
 
 ```julia
-VariationalMidpointLoss(arch, timestep)
+VariationalMidpointLoss(arch, timestep;
+    regulariser = MixedHessianRegulariser(arch, timestep; form = :tamed), weight = 1)
 ```
 
-where `arch` is a [`LagrangianArchitecture`](@ref).
+where `arch` is a [`LagrangianArchitecture`](@ref), `regulariser` a callable `r(ps, input)` and
+`weight` its weight ``w``. A timestep that is not positive and finite, and a weight that is
+negative, `NaN` or `Inf`, throw an `ArgumentError`. With `weight = 0` the regulariser is not
+evaluated, and the loss is the mean squared residual alone.
 
 # Functor
 
@@ -55,14 +71,24 @@ loss(ps, input, output) # equivalent to the above
 ```
 
 `input` stacks ``q_n`` on ``q_{n+1}`` and so has ``2n`` rows; `output` is ``q_{n+2}`` and has ``n``.
+Trailing dimensions are samples. Another row count throws a `DimensionMismatch`. The timestep and
+the weight are converted to the element type of the data, which the value has.
 """
-struct VariationalMidpointLoss{DT <: LagrangianDerivatives, T} <: NetworkLoss
+struct VariationalMidpointLoss{DT <: LagrangianDerivatives, T, RT, WT <: Real} <:
+       NetworkLoss
     derivatives::DT
     timestep::T
+    regulariser::RT
+    weight::WT
 
-    function VariationalMidpointLoss(arch::LagrangianArchitecture, timestep::Real)
+    function VariationalMidpointLoss(arch::LagrangianArchitecture, timestep::Real;
+            regulariser = MixedHessianRegulariser(arch, timestep; form = :tamed),
+            weight::Real = 1)
+        _check_timestep(timestep)
+        _check_weight(weight)
         D = LagrangianDerivatives(arch; hessian = false)
-        new{typeof(D), typeof(timestep)}(D, timestep)
+        new{typeof(D), typeof(timestep), typeof(regulariser), typeof(weight)}(
+            D, timestep, regulariser, weight)
     end
 end
 
@@ -92,7 +118,11 @@ end
 
 function (loss::VariationalMidpointLoss)(
         ps::NetworkParameters, input::AbstractArray, output::AbstractArray)
-    n = size(input, 1) ÷ 2
+    n = loss.derivatives.dim ÷ 2
+    size(input, 1) == 2n ||
+        throw(DimensionMismatch("the input has $(size(input, 1)) rows, and the architecture needs $(2n)"))
+    size(output, 1) == n ||
+        throw(DimensionMismatch("the output has $(size(output, 1)) rows, and the architecture needs $n"))
     qₙ = reshape(selectdim(input, 1, 1:n), n, :)
     qₙ₊₁ = reshape(selectdim(input, 1, (n + 1):(2n)), n, :)
     qₙ₊₂ = reshape(output, n, :)
@@ -100,5 +130,9 @@ function (loss::VariationalMidpointLoss)(
     _, D₂ = _discrete_lagrangian_derivatives(loss, ps, qₙ, qₙ₊₁)
     D₁, _ = _discrete_lagrangian_derivatives(loss, ps, qₙ₊₁, qₙ₊₂)
 
-    norm(D₂ + D₁) / norm(vcat(D₂, D₁))
+    residual = sum(abs2, D₂ + D₁) / size(qₙ₊₂, 2)
+    # A regulariser of weight 0 is not evaluated, so that a penalty of `Inf` or `NaN` does not make
+    # the loss `NaN`.
+    iszero(loss.weight) && return residual
+    residual + eltype(qₙ)(loss.weight) * loss.regulariser(ps, input)
 end

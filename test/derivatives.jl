@@ -104,6 +104,7 @@ end
         r"^these derivatives were compiled with `hessian = false`, and hold no input Hessian$",
         err.msg)
 
-    # `VariationalMidpointLoss` uses the gradient alone, so it compiles no Hessian.
+    # The residual of `VariationalMidpointLoss` uses the gradient alone, so its own derivatives
+    # hold no Hessian; its regulariser compiles its own.
     @test VariationalMidpointLoss(arch, T(0.05)).derivatives.hessian === nothing
 end

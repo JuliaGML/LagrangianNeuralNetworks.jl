@@ -7,7 +7,7 @@ using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Arc
                               Dense, Linear, NetworkLoss, dim
 import AbstractNeuralNetworks: Chain
 using NeuralNetworkParameters: NetworkParameters
-using LinearAlgebra: norm
+using LinearAlgebra: det, norm
 # The gradient and the Hessian of the network with respect to its input are compiled symbolic
 # expressions, not nested `Zygote` calls: see `LagrangianDerivatives`.
 import SymbolicNeuralNetworks
@@ -30,9 +30,12 @@ include("derivatives.jl")
 include("architectures/lagrangian_neural_network.jl")
 include("loss/lnn_loss.jl")
 include("loss/euler_lagrange_loss.jl")
+include("loss/regularisers.jl")
 include("loss/variational_midpoint_loss.jl")
 
 export LagrangianArchitecture, LagrangianNeuralNetwork, softplus
 export EulerLagrangeLoss, LNNLoss, VariationalMidpointLoss
+export RegularisedLoss, VelocityHessianRegulariser, MixedHessianRegulariser
+export ScaleCondition, DiscreteScaleCondition
 
 end

@@ -6,20 +6,20 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
 
 ### K1 · With `activation = tanh`, "training with `LNNLoss` reduces the loss" holds on some draws and not on others.
 
-- **location:** `test/architectures/lagrangian_neural_network_tests.jl`
+- **location:** `scripts/verification/training_reduces_the_loss.jl`
 - **kind:** defect
 - **found:** 2026-10-23
 - **evidence:**
-  `test_lnn_training` trains for 30 epochs against the accelerations of a second network draw and
-  asserts `loss_array[end] < loss_array[1]`. With `activation = tanh`, run with
-  `Random.seed!(seed)` before the function, for the seeds 1 to 16, the assertion fails on 2 of 16
-  seeds in `Float64` and on none in `Float32`; with 100 and 300 epochs it fails on 3 and on 2 of 16
-  in `Float64`, so more epochs do not close it. In `Float32` it also fails at the seed 1234 of the
-  test file (1.0064 against 0.9977). With the default activation, softplus, it holds on all 16
-  seeds and at the seed 1234 in both precisions; 16 draws do not make it a property of the loss.
-  The testset fixes the seed 1, on which both precisions pass with either activation. The
-  assertion is therefore a property of that draw, not of the loss. The same function with the same
-  assertion runs in GeometricMachineLearning's suite at the commit this package was cut from.
+  The `LNNLoss` training of the script trains for 30 epochs against the accelerations of a second
+  network draw and compares the last loss with the first. With `activation = tanh`, run with
+  `Random.seed!(seed)` before it, for the seeds 1 to 16, the last loss is not below the first on 2
+  of 16 seeds in `Float64` and on none in `Float32`; with 100 and 300 epochs it fails on 3 and on 2
+  of 16 in `Float64`, so more epochs do not close it. In `Float32` it also fails at the seed 1234
+  (1.0064 against 0.9977). With the default activation, softplus, it holds on all 16 seeds and at
+  the seed 1234 in both precisions; 16 draws do not make it a property of the loss. The script
+  trains with softplus and requires 14 of the 16 seeds in each precision. The same training, with
+  the assertion on one seed, runs in GeometricMachineLearning's suite at the commit this package
+  was cut from.
 
 ## Found while writing the tutorial
 
@@ -29,20 +29,6 @@ under `Random.seed!(1234)`, with `LagrangianNeuralNetwork(2; width = 4, nhidden 
 against GeometricMachineLearning 0.9.0. Each number is one draw. "Acceleration error" is the
 largest `|q̈_NN + q|` on a 21 × 21 grid of `[-1, 1]²`; "fit error" is the largest error of the
 least-squares fit `L ≈ a·NN + b` on that grid.
-
-### K3 · A small `VariationalMidpointLoss` does not imply the learned dynamics.
-
-- **location:** `src/loss/variational_midpoint_loss.jl:103`
-- **kind:** defect
-- **found:** 2026-11-03
-- **evidence:**
-  On 400 triples `q(0), q(Δt), q(2Δt)` of `q(t) = A cos(t + φ)`, with `A` uniform in `[0.2, 1]`,
-  `φ` uniform in `[0, 2π]` and `Δt = 0.1`, the loss goes from 0.071 to 3.6e-4 with `tanh`, and the
-  acceleration error of the trained network is 21.8. The loss divides by `‖[D₂L_d; D₁L_d]‖`, so it
-  is scale-invariant. A Lagrangian that is a total time derivative, `g(q)·q̇`, makes the discrete
-  Euler–Lagrange residual vanish for any data when `g` is affine, and leaves a residual of order
-  `Δt³` along a smooth trajectory otherwise. Nothing in the loss excludes it. With softplus the
-  loss ends at 2.0e-4 and the acceleration error is 0.17.
 
 ### K4 · The learned Lagrangian is not the true one beyond scale and offset, even where the dynamics are learned.
 

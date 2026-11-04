@@ -20,7 +20,20 @@ so that a compat-only bump can be told apart from a rename or a change in result
   built with the default activation computes other values than before; pass
   `activation = tanh` for the old network.
 * **The field `gradient` of `VariationalMidpointLoss` is now `derivatives`**, a
-  `LagrangianDerivatives`. The value of the loss is unchanged.
+  `LagrangianDerivatives`.
+* **`VariationalMidpointLoss` is the mean squared discrete Euler–Lagrange residual plus a weighted
+  regulariser, in place of the relative residual.** This fixes K3: the relative residual
+  `‖D₂L_d + D₁L_d‖ / ‖[D₂L_d; D₁L_d]‖` is invariant under a scaling of the Lagrangian, is `NaN`
+  for a constant one, and no residual excludes a null Lagrangian, whose discrete residual vanishes
+  on any data. The value is now the mean over the samples of `‖D₂L_d + D₁L_d‖²`
+  (Ober-Blöbaum & Offen 2023, (16)), with no normalisation, plus `weight · regulariser(ps, input)`.
+  The constructor is `VariationalMidpointLoss(arch, Δt; regulariser, weight = 1)`, and the default
+  regulariser is `MixedHessianRegulariser(arch, Δt; form = :tamed)`, which is 1 for a singular
+  discrete Lagrangian: the zero network now gives the loss `weight`, and the true harmonic
+  oscillator on exact data at `Δt = 0.1` a loss below `4e-8`. With `weight = 0` the regulariser is
+  not evaluated. A timestep that is not positive and finite and a negative, `NaN` or `Inf` weight
+  throw an `ArgumentError`, and data of the wrong row count a `DimensionMismatch`. Every value of
+  the loss changes.
 
 ### New Features
 
@@ -35,7 +48,28 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `Architecture` with a `dim` method, and return `2n × B` and `2n × 2n × B` for an input of size
   `2n × B`. With `hessian = false`, only the gradient is compiled, and `input_hessian` throws an
   `ArgumentError`. `lagrangian_acceleration` and `VariationalMidpointLoss` take their derivatives
-  from it, with the values of before; `VariationalMidpointLoss` passes `hessian = false`.
+  from it; `VariationalMidpointLoss` passes `hessian = false` for its residual.
+* **The regularity and scale penalties, and `RegularisedLoss`.** `RegularisedLoss(loss, terms...)`
+  adds terms `weight => r` to any loss of the package, where a penalty `r` is called as
+  `r(ps, input)`; a term of weight 0 is not evaluated.
+  * `VelocityHessianRegulariser(arch)`: the mean of `‖(∇q̇∇q̇L)⁻¹‖_F²` (Offen & Ober-Blöbaum 2023),
+    squared and in the Frobenius norm.
+  * `MixedHessianRegulariser(arch, Δt; form = :tamed)`: a penalty of
+    `Λ = −Δt·∂²L_d/∂q₀∂q₁` of the midpoint discrete Lagrangian, which tends to the velocity
+    Hessian as `Δt → 0`, in the forms `:inverse` (`‖Λ⁻¹‖_F²`, Offen & Ober-Blöbaum 2023, (11)),
+    `:tamed` (`relu(1 − 10/‖Λ⁻¹‖_F²)`, Offen & Ober-Blöbaum 2024, (34)) and `:sigmoid`
+    (`1 − sigmoid(0.01·det(Λ)²)`, Lishkova 2023). A singular `Λ` gives `Inf`, `1` and `1/2`.
+  * `ScaleCondition(arch; base, value)` and `DiscreteScaleCondition(arch, Δt; base, value)`:
+    `(det ∇q̇∇q̇L(x_b) − value)²` and `(det Λ(x_b) − value)²` (Offen 2025, (B.1), (B.2)).
+
+### Tests
+
+* **No test asserts that a training reduces the loss.** The testsets "training with
+  VariationalMidpointLoss reduces the loss" and "training with LNNLoss reduces the loss" leave the
+  suite, because each asserted a property of one draw (K1).
+  `scripts/verification/training_reduces_the_loss.jl` trains with both losses at the settings of
+  those testsets, on the seeds 1 to 16 in each precision, and exits 1 when the last loss is below
+  the first on fewer than 14 seeds of a loss and a precision.
 
 ### Maintenance
 

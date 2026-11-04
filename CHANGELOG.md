@@ -27,6 +27,16 @@ so that a compat-only bump can be told apart from a rename or a change in result
 * **`LagrangianArchitecture`, the supertype of a Lagrangian architecture.** `LagrangianNeuralNetwork`
   subtypes it, and `LNNLoss`, `NetworkLoss`, `VariationalMidpointLoss`, `EulerLagrangeLoss` and
   `lagrangian_acceleration` take any subtype that has a `dim` method and a `Chain`.
+* **`NormalisedLagrangian(arch; base, value, momentum)`, the normalisation of Offen 2025,
+  Prop. 3.1.** It wraps a `LagrangianArchitecture` so that its network is
+  `L̃(x) = NN(x) − NN(x_b) − (q̇ − q̇_b)ᵀ(∂_q̇NN(x_b) − p_b) + c_b`, with `L̃(x_b) = value` and
+  `∂_q̇L̃(x_b) = momentum` for every value of the parameters. `∂_q̇NN(x_b)` is computed inside the
+  forward pass, by a reverse pass over the `Dense` and `Linear` layers of the wrapped chain, so the
+  symbolic derivatives and every loss of the package inherit the normalisation. The reverse pass
+  supports `tanh`, `softplus` and `identity`; any other activation throws an `ArgumentError` at
+  construction. `base`, `value` and `momentum` take the element type of the parameters, in the
+  forward pass and in the compiled derivatives. The package now depends on `Random`, for the
+  `AbstractRNG` of `initialparameters`, and on `Symbolics`, for `@register_symbolic`.
 * **`EulerLagrangeLoss`, the Euler–Lagrange residual loss of Offen 2025, App. B.** It is the mean
   over the samples of `‖∇q̇∇q̇L q̈ + (∇q∇q̇L)ᵀq̇ − ∇qL‖²`, with no solve against the velocity Hessian
   and no normalisation. The one-sample residual is `_euler_lagrange_residual`, unexported.

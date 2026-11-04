@@ -13,4 +13,5 @@ if "slow" in GROUPS
     @safetestset "Lagrangian Neural Network" include("architectures/lagrangian_neural_network_tests.jl")
     @safetestset "LNN and variational midpoint losses" include("loss/training_method_losses.jl")
     @safetestset "The Euler–Lagrange residual loss" include("loss/euler_lagrange_loss.jl")
+    @safetestset "The normalised Lagrangian" include("architectures/normalised_lagrangian.jl")
 end

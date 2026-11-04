@@ -70,6 +70,7 @@ written out rather than taken with a nested `Zygote.gradient`.
 ```@docs
 LagrangianNeuralNetworks.LagrangianArchitecture
 LagrangianNeuralNetworks.LagrangianNeuralNetwork
+LagrangianNeuralNetworks.NormalisedLagrangian
 LagrangianNeuralNetworks.softplus
 LagrangianNeuralNetworks.LagrangianDerivatives
 LagrangianNeuralNetworks.input_gradient

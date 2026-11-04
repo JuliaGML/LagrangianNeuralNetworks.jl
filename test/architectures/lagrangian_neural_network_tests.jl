@@ -182,8 +182,8 @@ function test_lnn_training(T::DataType; n = 1, n_epochs = 30)
     @test loss_array[end] < loss_array[1]
 end
 
-# Whether 30 epochs reduce the loss depends on the draw, and on some draws they do not: see K1 in
-# KNOWN_ISSUES.md. The seed fixes a draw on which they do, in both precisions.
+# With `tanh`, whether 30 epochs reduce the loss depends on the draw: see K1 in KNOWN_ISSUES.md.
+# The seed fixes a draw on which they do, in both precisions.
 @testset "training with LNNLoss reduces the loss ($T)" for T in REAL_ELTYPES
     Random.seed!(1)
     test_lnn_training(T)

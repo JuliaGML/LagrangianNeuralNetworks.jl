@@ -20,7 +20,7 @@ so that a compat-only bump can be told apart from a rename or a change in result
   built with the default activation computes other values than before; pass
   `activation = tanh` for the old network.
 * **The field `gradient` of `VariationalMidpointLoss` is now `derivatives`**, a
-  `LagrangianDerivatives`. Its value is unchanged.
+  `LagrangianDerivatives`. The value of the loss is unchanged.
 
 ### New Features
 

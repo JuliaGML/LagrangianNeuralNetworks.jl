@@ -129,9 +129,9 @@ end
 The loss must vanish on a trajectory that satisfies the discrete Euler–Lagrange equations.
 
 At one degree of freedom the residual is scalar, so ``q_{n+2}`` is found by bracketing a sign change
-and bisecting. Bisection cannot diverge, which Newton on this residual does: a single overshoot puts
-the midpoint velocity deep into `tanh` saturation, where the gradient is constant to machine
-precision and a numerical Jacobian is exactly zero.
+and bisecting. Bisection cannot diverge, which Newton on this residual does with `tanh`: a single
+overshoot puts the midpoint velocity deep into `tanh` saturation, where the gradient is constant to
+machine precision and a numerical Jacobian is exactly zero.
 """
 function variational_next_position(loss, ps, qₙ, qₙ₊₁)
     _, D₂ = _discrete_lagrangian_derivatives(loss, ps, qₙ, qₙ₊₁)

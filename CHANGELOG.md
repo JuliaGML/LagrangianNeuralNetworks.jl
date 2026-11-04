@@ -33,8 +33,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
 * **`LagrangianDerivatives(arch)`, with `input_gradient` and `input_hessian`, unexported.** They
   compile the gradient and the Hessian of a scalar network with respect to its input once, for any
   `Architecture` with a `dim` method, and return `2n × B` and `2n × 2n × B` for an input of size
-  `2n × B`. `lagrangian_acceleration` and `VariationalMidpointLoss` take their derivatives from it,
-  with the values of before.
+  `2n × B`. With `hessian = false`, only the gradient is compiled, and `input_hessian` throws an
+  `ArgumentError`. `lagrangian_acceleration` and `VariationalMidpointLoss` take their derivatives
+  from it, with the values of before; `VariationalMidpointLoss` passes `hessian = false`.
 
 ### Maintenance
 

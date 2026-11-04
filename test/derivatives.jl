@@ -81,3 +81,29 @@ end
         @test occursin(r"^the input has 3 rows, and the network takes 4$", err.msg)
     end
 end
+
+@testset "the derivatives without the Hessian ($T)" for T in REAL_ELTYPES
+    arch = LagrangianNeuralNetwork(4; width = 4)
+    D = LagrangianDerivatives(arch)
+    D0 = LagrangianDerivatives(arch; hessian = false)
+    @test D0.hessian === nothing
+    ps = params(NeuralNetwork(arch, CPU(), T))
+    x = randn(T, 4, 3)
+
+    g0 = input_gradient(D0, x, ps)
+    @test eltype(g0) === T
+    @test isapprox(g0, input_gradient(D, x, ps); rtol = 8 * eps(T))
+
+    err = try
+        input_hessian(D0, x, ps)
+    catch e
+        e
+    end
+    @test err isa ArgumentError
+    @test occursin(
+        r"^these derivatives were compiled with `hessian = false`, and hold no input Hessian$",
+        err.msg)
+
+    # `VariationalMidpointLoss` uses the gradient alone, so it compiles no Hessian.
+    @test VariationalMidpointLoss(arch, T(0.05)).derivatives.hessian === nothing
+end

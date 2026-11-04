@@ -56,6 +56,14 @@ end
     end
 end
 
+@testset "an odd input dimension" begin
+    err = thrown(() -> EulerLagrangeLoss(LagrangianNeuralNetwork(3; width = 4)))
+    @test err isa ArgumentError
+    @test occursin(
+        r"^EulerLagrangeLoss: the architecture takes 3 inputs, and the input \[q; q̇\] has an even number of rows$",
+        err.msg)
+end
+
 # One architecture per shape: each is a compile of the symbolic derivatives.
 const ARCHS = Dict(n => LagrangianNeuralNetwork(2n; width = 4) for n in (1, 2))
 const LOSSES = Dict(n => EulerLagrangeLoss(ARCHS[n]) for n in (1, 2))

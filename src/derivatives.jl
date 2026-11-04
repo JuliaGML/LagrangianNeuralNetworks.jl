@@ -1,12 +1,13 @@
 @doc raw"""
-    LagrangianDerivatives(arch::Architecture)
+    LagrangianDerivatives(arch::Architecture; hessian = true)
 
 Compile the gradient and the Hessian of the network of `arch` with respect to its input, once.
 
 `arch` is any architecture whose `Chain` has a scalar output and that has a method of
 `AbstractNeuralNetworks.dim`, the input dimension ``2n``; it need not be a
 [`LagrangianArchitecture`](@ref). Evaluate the result with [`input_gradient`](@ref) and
-[`input_hessian`](@ref).
+[`input_hessian`](@ref). With `hessian = false`, only the gradient is built and compiled, and
+`input_hessian` throws an `ArgumentError`.
 
 # Implementation
 
@@ -26,14 +27,18 @@ struct LagrangianDerivatives{GT, HT}
     hessian::HT
 end
 
-function LagrangianDerivatives(arch::Architecture)
+function LagrangianDerivatives(arch::Architecture; hessian::Bool = true)
     snn = SymbolicNeuralNetwork(arch)
     ∇L = derivative(SymbolicNeuralNetworks.Jacobian(snn))
-    ∇∇L = derivative(SymbolicNeuralNetworks.Jacobian(∇L, snn))
     grad = SymbolicNeuralNetworks.build_nn_function(
         ∇L, snn.params, snn.input; inplace = false)
-    hess = SymbolicNeuralNetworks.build_nn_function(
-        ∇∇L, snn.params, snn.input; inplace = false)
+    hess = if hessian
+        ∇∇L = derivative(SymbolicNeuralNetworks.Jacobian(∇L, snn))
+        SymbolicNeuralNetworks.build_nn_function(
+            ∇∇L, snn.params, snn.input; inplace = false)
+    else
+        nothing
+    end
     LagrangianDerivatives(dim(arch), grad, hess)
 end
 
@@ -68,8 +73,12 @@ The Hessian of the network with respect to its input, ``\nabla_x\nabla_xL``, at 
 For `x` of size ``(2n, B)`` the result has size ``(2n, 2n, B)``, and slice `b` is the Hessian at
 column `b`. Trailing dimensions are flattened on the way in and restored on the way out: `x` of
 size ``(2n, s, B)`` gives ``(2n, 2n, s, B)``. An `x` whose first dimension is not ``2n`` throws a
-`DimensionMismatch`.
+`DimensionMismatch`, and `D` built with `hessian = false` an `ArgumentError`.
 """
 function input_hessian(D::LagrangianDerivatives, x::AbstractArray, ps)
     reshape(D.hessian(_input_matrix(D, x), ps), D.dim, D.dim, size(x)[2:end]...)
+end
+
+function input_hessian(::LagrangianDerivatives{GT, Nothing}, ::AbstractArray, ps) where {GT}
+    throw(ArgumentError("these derivatives were compiled with `hessian = false`, and hold no input Hessian"))
 end

@@ -61,7 +61,7 @@ struct VariationalMidpointLoss{DT <: LagrangianDerivatives, T} <: NetworkLoss
     timestep::T
 
     function VariationalMidpointLoss(arch::LagrangianArchitecture, timestep::Real)
-        D = LagrangianDerivatives(arch)
+        D = LagrangianDerivatives(arch; hessian = false)
         new{typeof(D), typeof(timestep)}(D, timestep)
     end
 end

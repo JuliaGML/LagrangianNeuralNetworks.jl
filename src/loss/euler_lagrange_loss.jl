@@ -33,7 +33,8 @@ A size mismatch of `input` and `output` throws a `DimensionMismatch`, and an emp
 EulerLagrangeLoss(arch)
 ```
 
-where `arch` is a [`LagrangianArchitecture`](@ref).
+where `arch` is a [`LagrangianArchitecture`](@ref). An odd input dimension `dim(arch)` throws an
+`ArgumentError`, before anything is compiled.
 
 # Functor
 
@@ -46,6 +47,8 @@ struct EulerLagrangeLoss{DT <: LagrangianDerivatives} <: NetworkLoss
     derivatives::DT
 
     function EulerLagrangeLoss(arch::LagrangianArchitecture)
+        iseven(dim(arch)) ||
+            throw(ArgumentError("EulerLagrangeLoss: the architecture takes $(dim(arch)) inputs, and the input [q; q̇] has an even number of rows"))
         D = LagrangianDerivatives(arch)
         new{typeof(D)}(D)
     end

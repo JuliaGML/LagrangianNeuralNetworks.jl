@@ -154,7 +154,7 @@ end
     end
 end
 
-# The whole message of the error that `f()` throws, and its type.
+# The exception that `f()` throws, or `nothing` when it throws none.
 function thrown(f)
     try
         f()

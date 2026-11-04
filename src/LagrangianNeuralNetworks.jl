@@ -1,7 +1,7 @@
 module LagrangianNeuralNetworks
 
-# The architecture is a `Chain` of `AbstractNeuralNetworks` layers, and its losses are
-# `NetworkLoss`es of that package. `Chain` is imported, not reached through `using`, because the
+# Each architecture is a `Chain` of `AbstractNeuralNetworks` layers, and the losses are
+# `NetworkLoss`es of that package. `Chain` is imported, not reached through `using`, because each
 # architecture adds a constructor method to it.
 using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Architecture,
                               Dense, GenericActivation, IdentityActivation, Initializer,

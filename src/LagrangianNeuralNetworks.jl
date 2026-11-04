@@ -1,17 +1,22 @@
 module LagrangianNeuralNetworks
 
-# The architecture is a `Chain` of `AbstractNeuralNetworks` layers, and its losses are
-# `NetworkLoss`es of that package. `Chain` is imported, not reached through `using`, because the
+# Each architecture is a `Chain` of `AbstractNeuralNetworks` layers, and the losses are
+# `NetworkLoss`es of that package. `Chain` is imported, not reached through `using`, because each
 # architecture adds a constructor method to it.
 using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Architecture,
-                              Dense, Linear, NetworkLoss, dim
+                              Dense, GenericActivation, IdentityActivation, Initializer,
+                              Linear, NetworkLoss, NeuralNetworkBackend, TanhActivation,
+                              dim,
+                              initialparameters
 import AbstractNeuralNetworks: Chain
-using NeuralNetworkParameters: NetworkParameters
+using NeuralNetworkParameters: NetworkParameters, params
 using LinearAlgebra: norm
+using Random: AbstractRNG
 # The gradient and the Hessian of the network with respect to its input are compiled symbolic
 # expressions, not nested `Zygote` calls: see `LagrangianDerivatives`.
 import SymbolicNeuralNetworks
 using SymbolicNeuralNetworks: SymbolicNeuralNetwork, derivative
+using Symbolics: Symbolics, @register_symbolic
 
 """
     LagrangianArchitecture <: Architecture
@@ -28,11 +33,12 @@ abstract type LagrangianArchitecture <: Architecture end
 
 include("derivatives.jl")
 include("architectures/lagrangian_neural_network.jl")
+include("architectures/normalised_lagrangian.jl")
 include("loss/lnn_loss.jl")
 include("loss/euler_lagrange_loss.jl")
 include("loss/variational_midpoint_loss.jl")
 
-export LagrangianArchitecture, LagrangianNeuralNetwork, softplus
+export LagrangianArchitecture, LagrangianNeuralNetwork, NormalisedLagrangian, softplus
 export EulerLagrangeLoss, LNNLoss, VariationalMidpointLoss
 
 end

@@ -21,6 +21,7 @@ const NON_PUBLIC_QUALIFIED = (
     :Jacobian)                                    # SymbolicNeuralNetworks
 const NON_PUBLIC_IMPORTS = (
     :AbstractExplicitLayer, :Architecture, :dim,  # AbstractNeuralNetworks
+    :Initializer, :TanhActivation,                # AbstractNeuralNetworks
     :derivative)                                  # SymbolicNeuralNetworks
 
 @testset "every other name reached in another package is public" begin

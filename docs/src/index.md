@@ -5,7 +5,9 @@ takes the dynamics from that Lagrangian through the Euler–Lagrange equations.
 
 It exports the architecture `LagrangianNeuralNetwork`, its supertype
 [`LagrangianArchitecture`](@ref LagrangianNeuralNetworks.LagrangianArchitecture), its default
-activation [`softplus`](@ref LagrangianNeuralNetworks.softplus), and three losses:
+activation [`softplus`](@ref LagrangianNeuralNetworks.softplus), the wrapper
+[`NormalisedLagrangian`](@ref LagrangianNeuralNetworks.NormalisedLagrangian), which fixes the
+value and the momentum of a Lagrangian at one point, and three losses:
 [`LNNLoss`](@ref LagrangianNeuralNetworks.LNNLoss), which compares the acceleration
 that the learned Lagrangian predicts against accelerations in the data,
 [`EulerLagrangeLoss`](@ref LagrangianNeuralNetworks.EulerLagrangeLoss), which asks the learned

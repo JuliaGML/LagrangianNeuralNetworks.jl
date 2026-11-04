@@ -19,6 +19,17 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   a property of that draw, not of the loss. The same function with the same assertion runs in
   GeometricMachineLearning's suite at the commit this package was cut from.
 
+### K5 · `VariationalMidpointLoss` compiles an input Hessian that it never uses.
+
+- **location:** `src/loss/variational_midpoint_loss.jl:63`
+- **kind:** defect
+- **found:** 2026-11-04
+- **evidence:**
+  The constructor takes its derivatives from `LagrangianDerivatives(arch)`, which builds the
+  symbolic input Hessian beside the input gradient; the loss uses the gradient alone. In review,
+  the construction took 0.31, 0.57 and 1.62 s at the widths 4, 8 and 16, against 0.13, 0.20 and
+  0.30 s at `37bd0a8`, where the constructor compiles the gradient alone. The values are unchanged.
+
 ## Found while writing the tutorial
 
 The probes below train on the harmonic oscillator, `L(q, q̇) = (q̇² − q²)/2` in one dimension,

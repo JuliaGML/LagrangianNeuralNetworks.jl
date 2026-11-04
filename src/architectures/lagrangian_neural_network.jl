@@ -9,7 +9,11 @@ amplifies every sample where that block is near zero. With softplus it does;
 `scripts/reproduction/k2_harmonic_oscillator.jl` trains it on 16 seeds in each precision.
 
 `exp` overflows, so `softplus(x)` is `Inf` above about 709 in `Float64` and about 88 in `Float32`.
-There is no guard.
+There is no guard. The compiled input derivatives of a network are then `NaN`, and so is every
+loss built on them. For negative `x`, `1 + exp(x)` rounds: the value loses relative accuracy, and
+it is `0` below about −37 in `Float64` and about −17 in `Float32`.
+
+LogExpFunctions also exports a `softplus`; a module that loads both packages qualifies the name.
 """
 softplus(x) = log(1 + exp(x))
 

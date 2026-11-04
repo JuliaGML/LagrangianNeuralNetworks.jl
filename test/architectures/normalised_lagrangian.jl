@@ -221,6 +221,42 @@ end
         err.msg)
 end
 
+# A change of the caller's vectors after the construction does not change the wrapper.
+@testset "the base point and the momentum are copied ($T)" for T in REAL_ELTYPES
+    arch = LagrangianNeuralNetwork(2; width = 4)
+    xb, pb = [0.3, -0.2], [0.5]
+    nl = NormalisedLagrangian(arch; base = xb, value = 0.37, momentum = pb)
+    xb0, pb0 = copy(xb), copy(pb)
+    xb .= [1.0, -1.0]
+    pb .= [-2.0]
+    @test nl.base == xb0
+    @test nl.momentum == pb0
+
+    rtol = identity_rtol(T)
+    x = T.(xb0)
+    ps = params(NeuralNetwork(nl, CPU(), T))
+    L = Chain(nl)(x, ps)
+    @test eltype(L) === T
+    @test abs(only(L) - T(0.37)) ≤ rtol * max(1, abs(only(wrapped(arch, x, ps))))
+    g = Zygote.gradient(y -> sum(Chain(nl)(y, ps)), x)[1]
+    @test eltype(g) === T
+    @test abs(g[2] - T(0.5)) ≤ rtol * max(1, maximum(abs, wrapped_momentum(arch, x, ps)))
+end
+
+@testset "a base point or a momentum that is no vector" begin
+    arch = LagrangianNeuralNetwork(2)
+
+    err = thrown(() -> NormalisedLagrangian(arch; momentum = 0.5))
+    @test occursin(
+        r"^TypeError: in keyword argument momentum, expected AbstractVector, got a value of type Float64$",
+        sprint(showerror, err))
+
+    err = thrown(() -> NormalisedLagrangian(arch; base = (0.0, 0.0)))
+    @test occursin(
+        r"^TypeError: in keyword argument base, expected AbstractVector, got a value of type Tuple\{Float64, Float64\}$",
+        sprint(showerror, err))
+end
+
 # One wrapper for `n = 1` and its Euler–Lagrange loss, shared by the two testsets below so that the
 # loss is compiled once.
 const LOSS_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);

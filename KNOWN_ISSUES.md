@@ -21,7 +21,7 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   assertion is therefore a property of that draw, not of the loss. The same function with the same
   assertion runs in GeometricMachineLearning's suite at the commit this package was cut from.
 
-### K5 · With `activation = identity`, `input_hessian` returns an `Int64` array, not one of the parameters' element type.
+### K6 · With `activation = identity`, `input_hessian` returns an `Int64` array, not one of the parameters' element type.
 
 - **location:** `src/derivatives.jl:79`
 - **kind:** found late

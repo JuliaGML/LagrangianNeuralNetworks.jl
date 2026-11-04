@@ -22,13 +22,14 @@ key `L1`. Every loss of the package takes a `NormalisedLagrangian` as it takes `
 on the parameters. That reverse pass supports `Dense` and `Linear` layers with the activations
 `tanh`, [`softplus`](@ref) and `identity`.
 
-`base`, `value` and `momentum` are converted to the element type of the parameters. Where the
-network of `arch` is not finite at the base point, as where `softplus` overflows, the network of
-the wrapper is not finite anywhere.
+`base` and `momentum` are copied at construction. `base`, `value` and `momentum` are converted to
+the element type of the parameters. Where the network of `arch` is not finite at the base point,
+as where `softplus` overflows, the network of the wrapper is not finite anywhere.
 
-A `base` of a length other than ``2n`` or a `momentum` of a length other than ``n`` throws a
-`DimensionMismatch`. An odd `dim(arch)`, a layer of `Chain(arch)` that is no `Dense`, and an
-activation other than the three above throw an `ArgumentError`.
+A `base` or a `momentum` that is no `AbstractVector` throws a `TypeError`. A `base` of a length
+other than ``2n`` or a `momentum` of a length other than ``n`` throws a `DimensionMismatch`. An odd
+`dim(arch)`, a layer of `Chain(arch)` that is no `Dense`, and an activation other than the three
+above throw an `ArgumentError`.
 """
 struct NormalisedLagrangian{AT <: LagrangianArchitecture, BT <: AbstractVector, VT <: Real,
     PT <: AbstractVector} <: LagrangianArchitecture
@@ -37,8 +38,9 @@ struct NormalisedLagrangian{AT <: LagrangianArchitecture, BT <: AbstractVector, 
     value::VT
     momentum::PT
 
-    function NormalisedLagrangian(arch::LagrangianArchitecture; base = zeros(dim(arch)),
-            value::Real = 0, momentum = zeros(dim(arch) ÷ 2))
+    function NormalisedLagrangian(arch::LagrangianArchitecture;
+            base::AbstractVector = zeros(dim(arch)), value::Real = 0,
+            momentum::AbstractVector = zeros(dim(arch) ÷ 2))
         d = dim(arch)
         iseven(d) ||
             throw(ArgumentError("NormalisedLagrangian: the architecture takes $d inputs, and the input [q; q̇] has an even number of rows"))
@@ -53,8 +55,8 @@ struct NormalisedLagrangian{AT <: LagrangianArchitecture, BT <: AbstractVector, 
             layer.σ isa _ReversibleActivation ||
                 throw(ArgumentError("NormalisedLagrangian: layer $i has the activation $(_activation_function(layer.σ)), and the reverse pass supports tanh, softplus and identity"))
         end
-        new{typeof(arch), typeof(base), typeof(value), typeof(momentum)}(
-            arch, base, value, momentum)
+        b, p = copy(base), copy(momentum)
+        new{typeof(arch), typeof(b), typeof(value), typeof(p)}(arch, b, value, p)
     end
 end
 

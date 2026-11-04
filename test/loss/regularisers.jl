@@ -1,5 +1,5 @@
 using LagrangianNeuralNetworks
-using LagrangianNeuralNetworks: LagrangianDerivatives, input_hessian, _mixed_hessian,
+using LagrangianNeuralNetworks: LagrangianDerivatives, input_hessian, _det, _mixed_hessian,
                                 _regularity_penalty
 using GeometricMachineLearning: CPU, Adam, Batch, DataLoader, NetworkParameters,
                                 NeuralNetwork,
@@ -143,6 +143,14 @@ end
     test_inverse_form_against_the_chain_rule(T)
 end
 
+# Whether the parameter gradient of the penalty `r` returns, with every leaf finite and of
+# element type `T`.
+function finite_gradient(r, ps, input, T)
+    gradient = Zygote.gradient(p -> r(p, input), ps)[1]
+    leaves = [array for layer in keys(gradient) for array in values(gradient[layer])]
+    all(leaf -> eltype(leaf) === T && all(isfinite, leaf), leaves)
+end
+
 @testset "a singular Hessian gives the decided values ($T)" for T in REAL_ELTYPES
     for n in (1, 2)
         nn = random_network(T, n)
@@ -155,7 +163,30 @@ end
         @test penalties[:tamed] === one(T)
         @test penalties[:sigmoid] === T(1 / 2)
         @test VelocityHessianRegulariser(arch)(ps, input) === T(Inf)
+        # The determinant's derivative does not invert the singular matrix.
+        @test finite_gradient(MixedHessianRegulariser(arch, 0.7; form = :sigmoid), ps, input, T)
     end
+end
+
+@doc raw"""
+The derivative of `_det` is the cofactor matrix, which `det`'s own derivative, `det(A)·inv(A)ᵀ`,
+equals where `A` is regular; `randn` gives a matrix that is not symmetric for `n ≥ 2`, so the
+transpose (the adjugate) is seen. At a singular matrix the cofactors are 1 for `n = 1` and 0 for the
+`2 × 2` zero matrix. The factor 3 and the square make the seed of the pullback other than 1.
+"""
+function test_determinant_derivative(T::DataType)
+    for n in (1, 2, 3)
+        A = randn(T, n, n)
+        gradient = Zygote.gradient(A -> _det(A)^2, A)[1]
+        @test eltype(gradient) === T
+        @test gradient ≈ Zygote.gradient(A -> det(A)^2, A)[1]
+    end
+    @test Zygote.gradient(A -> 3 * _det(A), zeros(T, 1, 1))[1] == fill(T(3), 1, 1)
+    @test Zygote.gradient(A -> 3 * _det(A), zeros(T, 2, 2))[1] == zeros(T, 2, 2)
+end
+
+@testset "the derivative of the determinant ($T)" for T in REAL_ELTYPES
+    test_determinant_derivative(T)
 end
 
 @testset "an unknown form is refused" begin
@@ -186,6 +217,16 @@ end
 # ---------------------------------------------------------------- the scale conditions
 
 @testset "the scale conditions on the harmonic oscillator ($T)" for T in REAL_ELTYPES
+    # On the zero network the Hessians are singular, and the parameter gradient still returns.
+    for n in (1, 2)
+        nn = random_network(T, n)
+        ps = zero_parameters!(params(nn))
+        arch = nn.architecture
+        input = randn(T, 2n, 3)
+        @test finite_gradient(ScaleCondition(arch; value = 2.5), ps, input, T)
+        @test finite_gradient(DiscreteScaleCondition(arch, 0.7; value = 2.5), ps, input, T)
+    end
+
     arch, ps = ho(T; m = 1)
     for base in (zeros(2), [0.3, -0.2]), input in (randn(T, 2, 4), randn(T, 2, 1, 4))
 

@@ -8,6 +8,9 @@ using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Arc
 import AbstractNeuralNetworks: Chain
 using NeuralNetworkParameters: NetworkParameters
 using LinearAlgebra: RowMaximum, det, issuccess, lu, norm
+# A derivative rule for the determinant of a penalty, which `Zygote` takes.
+import ChainRulesCore
+using ChainRulesCore: NoTangent
 # The gradient and the Hessian of the network with respect to its input are compiled symbolic
 # expressions, not nested `Zygote` calls: see `LagrangianDerivatives`.
 import SymbolicNeuralNetworks

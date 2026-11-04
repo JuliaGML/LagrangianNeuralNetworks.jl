@@ -74,6 +74,11 @@ so that a compat-only bump can be told apart from a rename or a change in result
 
 ### Maintenance
 
+* **ChainRulesCore is a dependency, `ChainRulesCore = "1.25.1"`.** It carries the derivative rule
+  of the determinant in `:sigmoid`, `ScaleCondition` and `DiscreteScaleCondition`: the cofactor
+  matrix, in place of the rule of ChainRules, `det(A)·inv(A)ᵀ`, which throws a `SingularException`
+  at a singular matrix. The parameter gradient of these penalties is then finite at the zero
+  network too.
 * **Test floors for the merged downgrade check.** The `Downgrade` job resolves `Project.toml` and
   `test/Project.toml` together at their lower bounds and runs the tests there; two floors of
   `test/Project.toml` go up so that it passes.

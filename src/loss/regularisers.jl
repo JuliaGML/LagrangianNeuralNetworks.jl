@@ -76,6 +76,19 @@ end
 # every form.
 _det(A::AbstractMatrix) = all(isfinite, A) ? det(A) : eltype(A)(NaN)
 
+# The cofactor matrix of `A`, the derivative of `det(A)` at every `A`, singular or not. The minor of
+# a `1 × 1` matrix is `0 × 0`, whose `det` is 1.
+function _cofactor(A::AbstractMatrix)
+    n = size(A, 1)
+    [(-1)^(i + j) * det(A[setdiff(1:n, i), setdiff(1:n, j)]) for i in 1:n, j in 1:n]
+end
+
+# The derivative of `_det` by its cofactors. The rule of `det` in ChainRules, `det(A)·inv(A)ᵀ`,
+# throws at a singular `A`, where a penalty of `det` must still give a gradient.
+function ChainRulesCore.rrule(::typeof(_det), A::AbstractMatrix)
+    _det(A), Δ -> (NoTangent(), Δ .* _cofactor(A))
+end
+
 # `‖A⁻¹‖_F²`, `Inf` for a singular `A`, and `NaN` for an `A` with a `NaN` or an `Inf` entry, where
 # `inv` can throw. `A` is singular where its LU factorisation has a zero pivot; a determinant that
 # underflows to 0 does not make it so.

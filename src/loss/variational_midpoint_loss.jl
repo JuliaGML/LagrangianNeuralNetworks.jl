@@ -118,13 +118,12 @@ end
 
 function (loss::VariationalMidpointLoss)(
         ps::NetworkParameters, input::AbstractArray, output::AbstractArray)
-    n = loss.derivatives.dim ÷ 2
-    size(input, 1) == 2n ||
-        throw(DimensionMismatch("the input has $(size(input, 1)) rows, and the architecture needs $(2n)"))
+    x = _input_columns(input, loss.derivatives)
+    n = size(x, 1) ÷ 2
     size(output, 1) == n ||
         throw(DimensionMismatch("the output has $(size(output, 1)) rows, and the architecture needs $n"))
-    qₙ = reshape(selectdim(input, 1, 1:n), n, :)
-    qₙ₊₁ = reshape(selectdim(input, 1, (n + 1):(2n)), n, :)
+    qₙ = x[1:n, :]
+    qₙ₊₁ = x[(n + 1):(2n), :]
     qₙ₊₂ = reshape(output, n, :)
 
     _, D₂ = _discrete_lagrangian_derivatives(loss, ps, qₙ, qₙ₊₁)

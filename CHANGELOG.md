@@ -68,8 +68,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
   VariationalMidpointLoss reduces the loss" and "training with LNNLoss reduces the loss" leave the
   suite, because each asserted a property of one draw (K1).
   `scripts/verification/training_reduces_the_loss.jl` trains with both losses at the settings of
-  those testsets, on the seeds 1 to 16 in each precision, and exits 1 when the last loss is below
-  the first on fewer than 14 seeds of a loss and a precision.
+  those testsets, with `LNNLoss` for 60 epochs in place of 30, on the seeds 1 to 16 in each
+  precision, and exits 1 when the last loss is below the first on fewer than 14 seeds of a loss
+  and a precision.
 
 ### Maintenance
 

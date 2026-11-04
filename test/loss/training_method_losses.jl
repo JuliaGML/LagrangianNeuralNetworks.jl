@@ -8,6 +8,7 @@ import Random
 
 include("../helpers/eltypes.jl")
 include("../helpers/harmonic_oscillator.jl")
+include("../helpers/zero_parameters.jl")
 
 Random.seed!(1234)
 
@@ -239,11 +240,7 @@ function test_null_lagrangian_against_the_oscillator(T::DataType; Δt = 0.1)
     output = T.(cos.(t .+ 2Δt)')
 
     null = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
-    ps = params(NeuralNetwork(null, CPU(), T))
-    for layer in keys(ps), array in values(ps[layer])
-
-        fill!(array, 0)
-    end
+    ps = zero_parameters!(params(NeuralNetwork(null, CPU(), T)))
     for weight in (1, 0.5)
         @test VariationalMidpointLoss(null, Δt; weight)(ps, input, output) === T(weight)
     end

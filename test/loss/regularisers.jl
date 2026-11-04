@@ -11,6 +11,7 @@ import Random
 
 include("../helpers/eltypes.jl")
 include("../helpers/harmonic_oscillator.jl")
+include("../helpers/zero_parameters.jl")
 
 Random.seed!(1234)
 
@@ -19,15 +20,6 @@ Random.seed!(1234)
 function random_network(T, n)
     NeuralNetwork(
         LagrangianNeuralNetwork(2n; width = 4, nhidden = 1, activation = softplus), CPU(), T)
-end
-
-# The parameters of `ps` set to zero, so that the network is `L ≡ 0`.
-function zero_parameters!(ps)
-    for layer in keys(ps), array in values(ps[layer])
-
-        fill!(array, 0)
-    end
-    ps
 end
 
 # ---------------------------------------------------------------- the discrete mixed Hessian
@@ -170,6 +162,25 @@ end
     arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
     @test_throws ArgumentError("form must be :inverse, :tamed or :sigmoid, got :spectral") MixedHessianRegulariser(
         arch, 0.1; form = :spectral)
+    @test_throws ArgumentError("form must be :inverse, :tamed or :sigmoid, got \"tamed\"") MixedHessianRegulariser(
+        arch, 0.1; form = "tamed")
+end
+
+@doc raw"""
+A matrix whose determinant underflows to 0 is not singular: `s·I` of size 3 has the determinant
+``s^3``, which is 0 in floating point for these `s`, and ``\|(sI)^{-1}\|_F^2 = 3/s^2`` is finite.
+"""
+function test_underflowing_determinant(T::DataType)
+    s = T === Float32 ? 1.0f-16 : 1.0e-110
+    Λ = Matrix{T}(s * I, 3, 3)
+    @test iszero(det(Λ))
+    value = _regularity_penalty(Λ, :inverse)
+    @test value isa T
+    @test isapprox(value, 3 / s^2; rtol = 8 * eps(T))
+end
+
+@testset "a determinant that underflows is no singular matrix ($T)" for T in REAL_ELTYPES
+    test_underflowing_determinant(T)
 end
 
 # ---------------------------------------------------------------- the scale conditions
@@ -188,6 +199,39 @@ end
         discrete = DiscreteScaleCondition(arch, 0.7; base, value = 0.5)(ps, input)
         @test discrete isa T
         @test isapprox(discrete, 0.38750625; rtol = 64 * eps(T))
+    end
+end
+
+@doc raw"""
+The oscillator's Hessian is the same at every point, so only a network whose Hessian varies shows
+that the conditions read `base`: the continuous one as the point ``[q; \dot{q}]``, the discrete one
+as the pair ``[q_0; q_1]``, against `Zygote` Hessians of ``L`` and of ``L_d``.
+"""
+function test_scale_conditions_at_a_base(T::DataType, n::Integer; Δt = 0.7)
+    nn = random_network(T, n)
+    ps = params(nn)
+    L(y) = sum(nn(y, ps))
+    Ld(z) = T(Δt) *
+            L(vcat((z[1:n] + z[(n + 1):(2n)]) / 2, (z[(n + 1):(2n)] - z[1:n]) / T(Δt)))
+    base = randn(2n)
+    input = randn(T, 2n, 3)
+
+    H = Zygote.hessian(L, T.(base))
+    expected = (det(H[(n + 1):(2n), (n + 1):(2n)]) - T(2.5))^2
+    value = ScaleCondition(nn.architecture; base, value = 2.5)(ps, input)
+    @test value isa T
+    @test value ≈ expected
+
+    Hd = Zygote.hessian(Ld, T.(base))
+    expected = (det(-T(Δt) * Hd[1:n, (n + 1):(2n)]) - T(2.5))^2
+    value = DiscreteScaleCondition(nn.architecture, Δt; base, value = 2.5)(ps, input)
+    @test value isa T
+    @test value ≈ expected
+end
+
+@testset "the scale conditions at a base point of a random network ($T)" for T in REAL_ELTYPES
+    for n in (1, 2)
+        test_scale_conditions_at_a_base(T, n)
     end
 end
 
@@ -275,6 +319,9 @@ end
         arch, 0.1; regulariser = r, weight = 0)(ps, input, randn(1, 4))
     @test_throws DimensionMismatch("the output has 2 rows, and the architecture needs 1") vml(
         ps, randn(2, 4), randn(2, 4))
+    # `RegularisedLoss` checks no rows itself: its loss is evaluated first and refuses the input.
+    @test_throws DimensionMismatch("EulerLagrangeLoss: the input has 3 rows, and the network takes 2") RegularisedLoss(
+        bare, 1 => r)(ps, input, randn(1, 4))
 end
 
 # At `n = 2` the inverse goes through LAPACK, which refuses a matrix with a `NaN`.

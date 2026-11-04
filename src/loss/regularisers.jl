@@ -72,15 +72,16 @@ function _mixed_hessian(H::AbstractMatrix, Δt)
 end
 
 # `det(A)`, and `NaN` for an `A` with a `NaN` or an `Inf` entry, where `det` itself returns `NaN` or
-# `±Inf`: a penalty of such a matrix is then `NaN` in every form.
+# `±Inf`. `_inverse_frobenius2` gives `NaN` there too, so a penalty of such a matrix is `NaN` in
+# every form.
 _det(A::AbstractMatrix) = all(isfinite, A) ? det(A) : eltype(A)(NaN)
 
-# `‖A⁻¹‖_F²`, `Inf` for a singular `A`, and `NaN` for an `A` with a `NaN` or an `Inf` entry; `inv`
-# throws for both of these.
+# `‖A⁻¹‖_F²`, `Inf` for a singular `A`, and `NaN` for an `A` with a `NaN` or an `Inf` entry, where
+# `inv` can throw. `A` is singular where its LU factorisation has a zero pivot; a determinant that
+# underflows to 0 does not make it so.
 function _inverse_frobenius2(A::AbstractMatrix)
-    d = _det(A)
-    isnan(d) && return d
-    iszero(d) ? eltype(A)(Inf) : sum(abs2, inv(A))
+    all(isfinite, A) || return eltype(A)(NaN)
+    issuccess(lu(A, RowMaximum(); check = false)) ? sum(abs2, inv(A)) : eltype(A)(Inf)
 end
 
 """
@@ -185,7 +186,7 @@ struct MixedHessianRegulariser{DT <: LagrangianDerivatives, TT <: Real}
     form::Symbol
 
     function MixedHessianRegulariser(
-            arch::LagrangianArchitecture, Δt::Real; form::Symbol = :tamed)
+            arch::LagrangianArchitecture, Δt::Real; form = :tamed)
         _check_timestep(Δt)
         _check_form(form)
         D = LagrangianDerivatives(arch)
@@ -307,6 +308,8 @@ A penalty `r` is any callable `r(ps, input)`, such as [`VelocityHessianRegularis
 Each weight is converted to the element type of `input`; with no terms, the value is that of
 `loss`. A weight that is negative, `NaN` or `Inf` throws an `ArgumentError`. A weight of 0 is
 allowed, and its penalty is not evaluated, so a penalty of `Inf` or `NaN` adds nothing there.
+`RegularisedLoss` checks no row count itself: it evaluates `loss` before its penalties, so data
+that `loss` refuses throw the error of `loss`.
 
 # Functor
 

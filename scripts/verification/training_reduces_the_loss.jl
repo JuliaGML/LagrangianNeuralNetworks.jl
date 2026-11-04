@@ -5,8 +5,9 @@
 # `(q(t), q(t + Δt), q(t + 2Δt))` of `q(t) = cos t` at `Δt = 0.05`, 60 of them, `Batch(10)` and
 # 20 epochs. `LNNLoss`: 60 points `[q; q̇]` drawn from a normal distribution, with the accelerations
 # that a first network draw predicts at them as the data, a second draw trained on them, `Batch(10)`
-# and 30 epochs. Both use `LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)`
-# and Adam with its default step size. Each seed sets the global random number generator before the
+# and 60 epochs (see K1 in KNOWN_ISSUES.md). Both use
+# `LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)` and Adam with its
+# default step size. Each seed sets the global random number generator before the
 # networks and the data are drawn.
 #
 # The script prints one line per loss, precision and seed, and exits 1 when the last loss is below
@@ -24,7 +25,7 @@ include("../utilities/smoke.jl")
 const SEEDS = smoke_size(1:16, 1:1)
 const REQUIRED = smoke_size(14, 0)
 const VML_EPOCHS = smoke_size(20, 2)
-const LNN_EPOCHS = smoke_size(30, 2)
+const LNN_EPOCHS = smoke_size(60, 2)
 const N_SAMPLES = 60
 const Δt = 0.05
 

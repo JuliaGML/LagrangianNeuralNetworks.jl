@@ -7,7 +7,7 @@ using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Arc
                               Dense, Linear, NetworkLoss, dim
 import AbstractNeuralNetworks: Chain
 using NeuralNetworkParameters: NetworkParameters
-using LinearAlgebra: det, norm
+using LinearAlgebra: RowMaximum, det, issuccess, lu, norm
 # The gradient and the Hessian of the network with respect to its input are compiled symbolic
 # expressions, not nested `Zygote` calls: see `LagrangianDerivatives`.
 import SymbolicNeuralNetworks

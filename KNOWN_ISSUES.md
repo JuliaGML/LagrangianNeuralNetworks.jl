@@ -16,12 +16,12 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   of 16 seeds in `Float64` and on none in `Float32`; with 100 and 300 epochs it fails on 3 and on 2
   of 16 in `Float64`, so more epochs do not close it. In `Float32` it also fails at the seed 1234
   (1.0064 against 0.9977). With the default activation, softplus, at 30 epochs in `Float64`, it
-  holds on 16 of 16 seeds in the draw order of the former test, which drew the inputs after
-  `LNNLoss(arch)` had consumed the global random number generator, and on 13 of 16 in the draw
-  order of the script (the seeds 4, 8 and 10 fail). 16 draws do not make it a property of the
-  loss. The script trains with softplus for 60 epochs and requires 14 of the 16 seeds in each
-  precision. The same training, with the assertion on one seed, runs in GeometricMachineLearning's
-  suite at the commit this package was cut from.
+  holds on 16 of 16 seeds when `LNNLoss(arch)` consumes the global random number generator
+  between the first network draw and the inputs, and on 13 of 16 in the draw order of the script
+  (the seeds 4, 8 and 10 fail). 16 draws do not make it a property of the loss. The script trains
+  with softplus for 60 epochs and requires 14 of the 16 seeds in each precision. The same
+  training, with the assertion on one seed, runs in GeometricMachineLearning's suite at the commit
+  this package was cut from.
 
 ### K6 · With `activation = identity`, `input_hessian` returns an `Int64` array, not one of the parameters' element type.
 

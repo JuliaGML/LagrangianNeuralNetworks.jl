@@ -79,8 +79,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
   suite, because each asserted a property of one draw (K1).
   `scripts/verification/training_reduces_the_loss.jl` trains with both losses at the settings of
   those testsets, with `LNNLoss` for 60 epochs in place of 30, on the seeds 1 to 16 in each
-  precision, and exits 1 when the last loss is below the first on fewer than 14 seeds of a loss
-  and a precision.
+  precision. It evaluates each loss on the whole data set at the parameters before the training and
+  at the parameters after it, and exits 1 when the second is below the first on fewer than 14
+  seeds of a loss and a precision.
 
 ### Maintenance
 

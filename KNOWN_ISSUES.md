@@ -10,18 +10,19 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
 - **kind:** defect
 - **found:** 2026-10-23
 - **evidence:**
-  The `LNNLoss` training trains against the accelerations of a second network draw and compares
-  the last loss with the first. At 30 epochs with `activation = tanh`, run with
-  `Random.seed!(seed)` before it, for the seeds 1 to 16, the last loss is not below the first on 2
-  of 16 seeds in `Float64` and on none in `Float32`; with 100 and 300 epochs it fails on 3 and on 2
-  of 16 in `Float64`, so more epochs do not close it. In `Float32` it also fails at the seed 1234
-  (1.0064 against 0.9977). With the default activation, softplus, at 30 epochs in `Float64`, it
-  holds on 16 of 16 seeds when `LNNLoss(arch)` consumes the global random number generator
-  between the first network draw and the inputs, and on 13 of 16 in the draw order of the script
-  (the seeds 4, 8 and 10 fail). 16 draws do not make it a property of the loss. The script trains
-  with softplus for 60 epochs and requires 14 of the 16 seeds in each precision. The same
-  training, with the assertion on one seed, runs in GeometricMachineLearning's suite at the commit
-  this package was cut from.
+  The `LNNLoss` training trains against the accelerations of a second network draw. The counts
+  below compare the last loss of the training history with the first. At 30 epochs with
+  `activation = tanh`, run with `Random.seed!(seed)` before it, for the seeds 1 to 16, the last
+  loss is not below the first on 2 of 16 seeds in `Float64` and on none in `Float32`; with 100 and
+  300 epochs it fails on 3 and on 2 of 16 in `Float64`, so more epochs do not close it. In
+  `Float32` it also fails at the seed 1234 (1.0064 against 0.9977). With the default activation,
+  softplus, at 30 epochs in `Float64`, it holds on 16 of 16 seeds when `LNNLoss(arch)` consumes
+  the global random number generator between the first network draw and the inputs, and on 13 of
+  16 in the draw order of the script (the seeds 4, 8 and 10 fail). 16 draws do not make it a
+  property of the loss. The script trains with softplus for 60 epochs, evaluates the loss on the
+  whole data set at the parameters before and after the training, and requires the second below
+  the first on 14 of the 16 seeds in each precision. The same training, with the assertion on one
+  seed, runs in GeometricMachineLearning's suite at the commit this package was cut from.
 
 ### K6 · With `activation = identity`, `input_hessian` returns an `Int64` array, not one of the parameters' element type.
 

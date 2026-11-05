@@ -13,7 +13,13 @@ that the learned Lagrangian predicts against accelerations in the data,
 [`EulerLagrangeLoss`](@ref LagrangianNeuralNetworks.EulerLagrangeLoss), which asks the learned
 Lagrangian to satisfy the Euler–Lagrange equations on the same data with no solve, and
 [`VariationalMidpointLoss`](@ref LagrangianNeuralNetworks.VariationalMidpointLoss), which needs
-positions only. The training itself — the data loader, the batches, the optimiser and `train!` —
+positions only. [`RegularisedLoss`](@ref LagrangianNeuralNetworks.RegularisedLoss) adds weighted
+penalties to any of them: the regularity penalties
+[`VelocityHessianRegulariser`](@ref LagrangianNeuralNetworks.VelocityHessianRegulariser) and
+[`MixedHessianRegulariser`](@ref LagrangianNeuralNetworks.MixedHessianRegulariser), and the scale
+conditions [`ScaleCondition`](@ref LagrangianNeuralNetworks.ScaleCondition) and
+[`DiscreteScaleCondition`](@ref LagrangianNeuralNetworks.DiscreteScaleCondition). The training
+itself — the data loader, the batches, the optimiser and `train!` —
 is [GeometricMachineLearning](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s.
 
 ```julia

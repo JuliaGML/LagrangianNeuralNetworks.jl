@@ -61,9 +61,10 @@ through the discrete Euler–Lagrange equations of the *midpoint discrete Lagran
         L\!\left( \frac{q_n + q_{n+1}}{2}, \frac{q_{n+1} - q_n}{\Delta{}t} \right),
 ```
 
-which ask that ``D_2L_d(q_n, q_{n+1}) + D_1L_d(q_{n+1}, q_{n+2}) = 0`` along the data. Only the
-first derivative of the network is needed for this, because the chain rule through the midpoint is
-written out rather than taken with a nested `Zygote.gradient`.
+which ask that ``D_2L_d(q_n, q_{n+1}) + D_1L_d(q_{n+1}, q_{n+2}) = 0`` along the data. The residual
+needs only the first derivative of the network, because the chain rule through the midpoint is
+written out rather than taken with a nested `Zygote.gradient`; its default regulariser,
+[`LagrangianNeuralNetworks.MixedHessianRegulariser`](@ref), needs the second.
 
 ## Library Functions
 
@@ -82,4 +83,12 @@ LagrangianNeuralNetworks.lagrangian_acceleration
 LagrangianNeuralNetworks._euler_lagrange_acceleration
 LagrangianNeuralNetworks.VariationalMidpointLoss
 LagrangianNeuralNetworks._discrete_lagrangian_derivatives
+LagrangianNeuralNetworks.RegularisedLoss
+LagrangianNeuralNetworks.VelocityHessianRegulariser
+LagrangianNeuralNetworks.MixedHessianRegulariser
+LagrangianNeuralNetworks._mixed_hessian
+LagrangianNeuralNetworks._regularity_penalty
+LagrangianNeuralNetworks._check_form
+LagrangianNeuralNetworks.ScaleCondition
+LagrangianNeuralNetworks.DiscreteScaleCondition
 ```

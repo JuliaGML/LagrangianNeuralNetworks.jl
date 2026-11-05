@@ -10,10 +10,12 @@
 #
 # WHAT IT RUNS.
 #
-# `scripts/runscripts.jl` runs every `.jl` file under `reproduction/`, each in its own process, with
+# `scripts/runscripts.jl` runs every `.jl` file under `verification/` and then under
+# `reproduction/`, each in its own process. A verification script runs in full, without LNN_SMOKE,
+# because its exit status is the verdict on the claim it checks. A reproduction script runs with
 # LNN_SMOKE set, which is what `utilities/smoke.jl` reads to return the small size of every constant
-# that costs time. A smoke run proves that the script still executes end to end; it says nothing
-# about the result. The package has no `verification/` scripts, so that mode is not run.
+# that costs time; a smoke run proves that the script still executes end to end, and says nothing
+# about the result.
 #
 # One entry, not a matrix: this job asks whether the scripts still run, and that question does not
 # have a different answer on a second operating system.
@@ -58,5 +60,9 @@ jobs:
               # `Pkg.develop` is neither needed nor wanted here: it would write a machine-local
               # absolute path into that table.
               run: julia --startup-file=no --project=scripts -e 'using Pkg; Pkg.instantiate()'
+            - name: Verification scripts, in full
+              run: julia --startup-file=no --project=scripts scripts/runscripts.jl verification
             - name: Reproduction scripts, smoke sizes
+              # Runs after a red verification step too, so that one verdict does not hide the other.
+              if: success() || failure()
               run: julia --startup-file=no --project=scripts scripts/runscripts.jl reproduction

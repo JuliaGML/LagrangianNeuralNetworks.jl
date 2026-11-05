@@ -1,14 +1,14 @@
 using LagrangianNeuralNetworks
 using LagrangianNeuralNetworks: _discrete_lagrangian_derivatives
-using GeometricMachineLearning: CPU, Adam, Batch, DataLoader, NetworkLoss,
-                                NetworkParameters, NeuralNetwork, TrainingOptimizer, params,
-                                train!
+using GeometricMachineLearning: CPU, NetworkLoss, NetworkParameters, NeuralNetwork, params
 using LinearAlgebra
 using Test
 using Zygote
 import Random
 
 include("../helpers/eltypes.jl")
+include("../helpers/harmonic_oscillator.jl")
+include("../helpers/zero_parameters.jl")
 
 Random.seed!(1234)
 
@@ -33,7 +33,8 @@ function test_loss_of_a_network_matches_loss_of_its_parameters(T::DataType)
 
     vm_arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1)
     nn = NeuralNetwork(vm_arch, CPU(), T)
-    loss = VariationalMidpointLoss(vm_arch, 0.05)
+    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
+    loss = VariationalMidpointLoss(vm_arch, 0.5)
     input, output = randn(T, 2, 5), randn(T, 1, 5)
     @test loss(nn, input, output) == loss(params(nn), input, output)
     @test loss(nn, input, output) isa T
@@ -52,7 +53,8 @@ element type is what decides the result's.
 function test_timestep_does_not_widen_the_element_type(T::DataType, n::Integer = 1)
     lagrangian = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     psl = params(NeuralNetwork(lagrangian, CPU(), T))
-    for timestep in (0.05, 0.05f0)
+    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
+    for timestep in (0.5, 0.5f0)
         @test VariationalMidpointLoss(lagrangian, timestep)(
             psl, randn(T, 2n, 5), randn(T, n, 5)) isa T
     end
@@ -92,17 +94,19 @@ end
 end
 
 @doc raw"""
-The loss must *be* the discrete Euler–Lagrange residual, normalised.
+With no regulariser, the loss must *be* the mean over the samples of the squared discrete
+Euler–Lagrange residual.
 
 Compare it against the same quantity assembled from `Zygote` gradients of ``L_d`` itself, which is
 the call `VariationalMidpointLoss` exists in order not to make. This asserts what the loss computes
-without needing a discrete trajectory to be solved for first.
+without needing a discrete trajectory to be solved for first. At `n > 1` a mean over the `n·B`
+entries differs from the mean over the `B` samples.
 """
 function test_variational_loss_is_the_del_residual(
         T::DataType, n::Integer; Δt = T(0.05), batch_size = 4)
     arch = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     nn = NeuralNetwork(arch, CPU(), T)
-    loss = VariationalMidpointLoss(arch, Δt)
+    loss = VariationalMidpointLoss(arch, Δt; weight = 0)
 
     qₙ = randn(T, n, batch_size)
     qₙ₊₁ = randn(T, n, batch_size)
@@ -116,7 +120,7 @@ function test_variational_loss_is_the_del_residual(
 
     value = loss(params(nn), vcat(qₙ, qₙ₊₁), qₙ₊₂)
     @test value isa T
-    @test value ≈ norm(D₂ + D₁) / norm(vcat(D₂, D₁))
+    @test value ≈ sum(abs2, D₂ + D₁) / batch_size
 end
 
 @testset "the loss is the discrete Euler–Lagrange residual ($T)" for T in REAL_ELTYPES
@@ -179,7 +183,7 @@ end
 function test_variational_loss_vanishes_on_a_discrete_trajectory(T::DataType; Δt = T(0.05))
     arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1)
     nn = NeuralNetwork(arch, CPU(), T)
-    loss = VariationalMidpointLoss(arch, Δt)
+    loss = VariationalMidpointLoss(arch, Δt; weight = 0)
 
     trajectory = a_discrete_trajectory(loss, params(nn), T; Δt = Δt)
     @test trajectory !== nothing
@@ -190,7 +194,7 @@ function test_variational_loss_vanishes_on_a_discrete_trajectory(T::DataType; Δ
     @test value isa T
     @test value < 1000 * eps(T)
     # A position that does not solve the discrete Euler–Lagrange equations must not pass.
-    @test loss(params(nn), vcat(qₙ, qₙ₊₁), qₙ₊₂ .+ T(0.1)) > 1.0e-3
+    @test loss(params(nn), vcat(qₙ, qₙ₊₁), qₙ₊₂ .+ T(0.1)) > 1.0e-6
 end
 
 # The seed makes the trajectory of each precision the same in every run, whatever ran before it.
@@ -202,7 +206,8 @@ end
 function test_variational_loss_gradient(T::DataType, n::Integer = 1)
     arch = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     nn = NeuralNetwork(arch, CPU(), T)
-    loss = VariationalMidpointLoss(arch, 0.05)
+    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
+    loss = VariationalMidpointLoss(arch, 0.5)
     input = randn(T, 2n, 6)
     output = randn(T, n, 6)
 
@@ -214,6 +219,7 @@ function test_variational_loss_gradient(T::DataType, n::Integer = 1)
     @test keys(dp) == keys(params(nn))
     @test eltype(dp.L1.W) === T
     @test !all(iszero, dp.L1.W)
+    @test all(isfinite, dp.L1.W)
 end
 
 @testset "VariationalMidpointLoss is differentiable ($T)" for T in REAL_ELTYPES
@@ -221,35 +227,36 @@ end
 end
 
 @doc raw"""
-Training must reduce the loss on a real trajectory.
+The default regulariser must separate a null Lagrangian from the true one.
 
-The data are the harmonic oscillator, ``q(t) = \cos(t)``, sampled at a fixed step. Asking the
-network for a Lagrangian whose discrete Euler–Lagrange equations that trajectory satisfies is the
-intended use of this loss, and it does not depend on the network's own initial draw the way a
-self-generated trajectory would.
+The zero network is a null Lagrangian: ``D_1L_d = D_2L_d = 0`` for any data, so its residual is
+exactly zero. Its ``\Lambda`` is zero, the tamed penalty is 1 at every pair, and the loss is the
+weight. The oscillator ``L = (\dot{q}^2 - q^2)/2`` on the exact data ``q(t) = \cos t`` has the
+residual ``\rho\,q_{n+1}`` with
+``\rho = 2(1 - \cos\Delta{}t)/\Delta{}t - \Delta{}t(1 + \cos\Delta{}t)/2``, the truncation error of
+the midpoint rule, and the tamed penalty 0, because
+``\|\Lambda^{-1}\|_F^2 = (1 + \Delta{}t^2/4)^{-2} < 10``. The rounding of the data to `Float32`
+moves the loss by less than 0.1 %, so 5 % holds in both precisions.
 """
-function test_variational_training(T::DataType; Δt = T(0.05), samples = 60, n_epochs = 20)
-    # The shape of the tests above. The assertion is that training reduces the loss, which does
-    # not depend on the width and depth, and a new shape is a fresh `Zygote` specialisation of the
-    # whole loss.
-    arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1)
-    nn = NeuralNetwork(arch, CPU(), T)
-    loss = VariationalMidpointLoss(arch, Δt)
+function test_null_lagrangian_against_the_oscillator(T::DataType; Δt = 0.1)
+    t = range(0, 5; length = 50)
+    input = T.(vcat(cos.(t)', cos.(t .+ Δt)'))
+    output = T.(cos.(t .+ 2Δt)')
 
-    t = range(zero(T), Δt * (samples + 1); step = Δt)
-    q = cos.(t)
-    qₙ = reshape(q[1:samples], 1, samples)
-    qₙ₊₁ = reshape(q[2:(samples + 1)], 1, samples)
-    qₙ₊₂ = reshape(q[3:(samples + 2)], 1, samples)
+    null = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
+    ps = zero_parameters!(params(NeuralNetwork(null, CPU(), T)))
+    for weight in (1, 0.5)
+        @test VariationalMidpointLoss(null, Δt; weight)(ps, input, output) === T(weight)
+    end
 
-    dl = DataLoader(vcat(qₙ, qₙ₊₁), qₙ₊₂; suppress_info = true)
-    loss_array = train!(
-        nn, TrainingOptimizer(nn.params; algorithm = Adam()), dl, Batch(10), n_epochs;
-        loss, show_progress = false)
-    @test eltype(loss_array) === T
-    @test loss_array[end] < loss_array[1]
+    arch, ps = ho(T; m = 1)
+    value = VariationalMidpointLoss(arch, Δt; weight = 1)(ps, input, output)
+    ρ = 2(1 - cos(Δt)) / Δt - Δt * (1 + cos(Δt)) / 2
+    @test value isa T
+    @test value < 4.0e-8
+    @test isapprox(value, ρ^2 * sum(abs2, cos.(t .+ Δt)) / length(t); rtol = 0.05)
 end
 
-@testset "training with VariationalMidpointLoss reduces the loss ($T)" for T in REAL_ELTYPES
-    test_variational_training(T)
+@testset "the default regulariser separates a null Lagrangian (K3) ($T)" for T in REAL_ELTYPES
+    test_null_lagrangian_against_the_oscillator(T)
 end

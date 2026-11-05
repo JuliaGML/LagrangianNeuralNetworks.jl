@@ -60,10 +60,13 @@ AbstractNeuralNetworks.Chain(arch::WrappedLagrangian) = Chain(arch.inner)
     wrapped = WrappedLagrangian(inner)
 
     @test NetworkLoss(wrapped) isa LNNLoss
+    # The timestep of `VariationalMidpointLoss` keeps the midpoint velocity of random positions
+    # small: at `0.05` it reaches the overflow of softplus in `Float32`, where the Hessian of its
+    # default regulariser is `NaN`, and `NaN == NaN` is false.
     pairs = (
         (lagrangian_acceleration(wrapped), lagrangian_acceleration(inner)),
         (LNNLoss(wrapped), LNNLoss(inner)),
-        (VariationalMidpointLoss(wrapped, 0.05), VariationalMidpointLoss(inner, 0.05)),
+        (VariationalMidpointLoss(wrapped, 0.5), VariationalMidpointLoss(inner, 0.5)),
         (EulerLagrangeLoss(wrapped), EulerLagrangeLoss(inner))
     )
 

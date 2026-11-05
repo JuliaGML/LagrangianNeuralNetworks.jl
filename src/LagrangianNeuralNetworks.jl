@@ -10,8 +10,11 @@ using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Arc
                               initialparameters
 import AbstractNeuralNetworks: Chain
 using NeuralNetworkParameters: NetworkParameters, params
-using LinearAlgebra: norm
+using LinearAlgebra: RowMaximum, det, issuccess, lu, norm
 using Random: AbstractRNG
+# A derivative rule for the determinant of a penalty, which `Zygote` takes.
+import ChainRulesCore
+using ChainRulesCore: NoTangent
 # The gradient and the Hessian of the network with respect to its input are compiled symbolic
 # expressions, not nested `Zygote` calls: see `LagrangianDerivatives`.
 import SymbolicNeuralNetworks
@@ -36,9 +39,12 @@ include("architectures/lagrangian_neural_network.jl")
 include("architectures/normalised_lagrangian.jl")
 include("loss/lnn_loss.jl")
 include("loss/euler_lagrange_loss.jl")
+include("loss/regularisers.jl")
 include("loss/variational_midpoint_loss.jl")
 
 export LagrangianArchitecture, LagrangianNeuralNetwork, NormalisedLagrangian, softplus
 export EulerLagrangeLoss, LNNLoss, VariationalMidpointLoss
+export RegularisedLoss, VelocityHessianRegulariser, MixedHessianRegulariser
+export ScaleCondition, DiscreteScaleCondition
 
 end

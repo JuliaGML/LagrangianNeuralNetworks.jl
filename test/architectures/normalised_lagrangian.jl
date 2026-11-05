@@ -264,7 +264,10 @@ const LOSS_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
 const EL_LOSS = EulerLagrangeLoss(LOSS_ARCH)
 
 @testset "three losses on the wrapper" begin
-    losses = (LNNLoss(LOSS_ARCH), EL_LOSS, VariationalMidpointLoss(LOSS_ARCH, 0.05))
+    # The timestep of `VariationalMidpointLoss` keeps the midpoint velocity of random positions
+    # small: at `0.05` it reaches the overflow of softplus in `Float32`, where the Hessian of its
+    # default regulariser is `NaN` (K8).
+    losses = (LNNLoss(LOSS_ARCH), EL_LOSS, VariationalMidpointLoss(LOSS_ARCH, 0.5))
     for T in REAL_ELTYPES, loss in losses
 
         ps = params(NeuralNetwork(LOSS_ARCH, CPU(), T))

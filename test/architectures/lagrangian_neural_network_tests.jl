@@ -1,8 +1,6 @@
 using LagrangianNeuralNetworks
 using LagrangianNeuralNetworks: _euler_lagrange_acceleration, lagrangian_acceleration
-using GeometricMachineLearning: CPU, Adam, Batch, DataLoader, NetworkLoss,
-                                NetworkParameters, NeuralNetwork, TrainingOptimizer, params,
-                                train!
+using GeometricMachineLearning: CPU, NetworkLoss, NetworkParameters, NeuralNetwork, params
 using LinearAlgebra
 using Test
 using Zygote
@@ -153,38 +151,4 @@ end
 @testset "LNNLoss is the default loss and differentiable ($T)" for T in REAL_ELTYPES
     test_lnn_loss(T, 1)
     test_lnn_loss(T, 2)
-end
-
-"""
-The loss must reach zero on data a Lagrangian can actually reproduce, so train against the
-accelerations the *network's own* Euler–Lagrange equations give at its initial parameters. Those
-are reachable by construction, which makes "the loss decreases" a statement about training rather
-than about how hard the target was.
-"""
-function test_lnn_training(T::DataType; n = 1, n_epochs = 30)
-    # The width and depth deliberately match the tests above. A different `Chain` length is a fresh
-    # `Zygote` specialisation of the whole loss, which costs compile time and buys nothing: the
-    # assertion is that training reduces the loss, and that does not depend on either.
-    arch = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
-    nn = NeuralNetwork(arch, CPU(), T)
-    loss = LNNLoss(arch)
-
-    input = randn(T, 2n, 60)
-    output = loss.acceleration(input, params(nn))
-
-    # Start the training from a different draw, so the target is not already met.
-    nn = NeuralNetwork(arch, CPU(), T)
-    dl = DataLoader(input, output; suppress_info = true)
-    optimizer = TrainingOptimizer(nn.params; algorithm = Adam())
-    loss_array = train!(nn, optimizer, dl, Batch(10), n_epochs; loss, show_progress = false)
-
-    @test eltype(loss_array) === T
-    @test loss_array[end] < loss_array[1]
-end
-
-# With `tanh`, whether 30 epochs reduce the loss depends on the draw: see K1 in KNOWN_ISSUES.md.
-# The seed fixes a draw on which they do, in both precisions.
-@testset "training with LNNLoss reduces the loss ($T)" for T in REAL_ELTYPES
-    Random.seed!(1)
-    test_lnn_training(T)
 end

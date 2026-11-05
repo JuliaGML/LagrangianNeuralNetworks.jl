@@ -89,6 +89,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
   matrix, in place of the rule of ChainRules, `det(A)·inv(A)ᵀ`, which throws a `SingularException`
   at a singular matrix. The parameter gradient of these penalties is then finite at the zero
   network too.
+* **The `Scripts` workflow runs the verification scripts in full**, before the reproduction
+  scripts at their smoke sizes, so that `scripts/verification/training_reduces_the_loss.jl` gates
+  every pull request.
 * **Test floors for the merged downgrade check.** The `Downgrade` job resolves `Project.toml` and
   `test/Project.toml` together at their lower bounds and runs the tests there; two floors of
   `test/Project.toml` go up so that it passes.

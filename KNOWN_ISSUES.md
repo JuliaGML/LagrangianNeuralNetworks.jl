@@ -45,7 +45,8 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `RegularisedLoss` checks no rows itself and passes this error on. With
   `arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)`,
   `r = VelocityHessianRegulariser(arch)` and `loss = RegularisedLoss(LNNLoss(arch), 1 => r)`,
-  `loss(ps, randn(3, 4), randn(1, 4))` throws `DimensionMismatch: new dimensions (1, 4) must be consistent with array length 6`, where
+  `loss(ps, randn(3, 4), randn(1, 4))` throws
+  `DimensionMismatch: new dimensions (1, 4) must be consistent with array length 6`, where
   `EulerLagrangeLoss` and `VariationalMidpointLoss` name the row count that the architecture needs.
 
 ### K8 · The input Hessian of a softplus network is not finite in `Float32` at a large preactivation, so the default `VariationalMidpointLoss` can be `NaN`.
@@ -58,9 +59,10 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   a large preactivation. For
   `arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)`, drawn in
   `Float32` under `Random.seed!(1234)`, and `D = LagrangianDerivatives(arch)`,
-  `input_hessian(D, reshape(Float32[0.1, v], 2, 1), ps)` is finite at `v = 10` and `30`, and not finite at `v = 100` and `1000`. The default regulariser
-  of `VariationalMidpointLoss` reads this Hessian at the midpoint velocity `(q₁ − q₀)/Δt`, which
-  is large for a small `Δt` and positions that are not close. With `Random.seed!(1)`, a `Float32`
+  `input_hessian(D, reshape(Float32[0.1, v], 2, 1), ps)` is finite at `v = 10` and `30`, and not
+  finite at `v = 100` and `1000`. The default regulariser of `VariationalMidpointLoss` reads this
+  Hessian at the midpoint velocity `(q₁ − q₀)/Δt`, which is large for a small `Δt` and positions
+  that are not close. With `Random.seed!(1)`, a `Float32`
   draw of the network and `randn(Float32, 2, 10)`, `randn(Float32, 1, 10)` as the data,
   `VariationalMidpointLoss(arch, 0.05)` gives `NaN`, and the same loss with `weight = 0` gives
   `0.018962238`.

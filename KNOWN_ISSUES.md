@@ -6,7 +6,7 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
 
 ### K1 · "Training with `LNNLoss` reduces the loss" holds on some draws and not on others.
 
-- **location:** `scripts/verification/training_reduces_the_loss.jl`
+- **location:** `src/loss/lnn_loss.jl`
 - **kind:** defect
 - **found:** 2026-10-23
 - **evidence:**
@@ -18,11 +18,10 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `Float32` it also fails at the seed 1234 (1.0064 against 0.9977). With the default activation,
   softplus, at 30 epochs in `Float64`, it holds on 16 of 16 seeds when `LNNLoss(arch)` consumes
   the global random number generator between the first network draw and the inputs, and on 13 of
-  16 in the draw order of the script (the seeds 4, 8 and 10 fail). 16 draws do not make it a
-  property of the loss. The script trains with softplus for 60 epochs, evaluates the loss on the
-  whole data set at the parameters before and after the training, and requires the second below
-  the first on 14 of the 16 seeds in each precision. The same training, with the assertion on one
-  seed, runs in GeometricMachineLearning's suite at the commit this package was cut from.
+  16 in the draw order of K10 (the seeds 4, 8 and 10 fail). 16 draws do not make it a property of
+  the loss. K10 gives the counts at 60 epochs on the whole data set. The same training, with the
+  assertion on one seed, runs in GeometricMachineLearning's suite at the commit this package was
+  cut from.
 
 ### K6 · With `activation = identity`, `input_hessian` returns an `Int64` array, not one of the parameters' element type.
 
@@ -84,6 +83,23 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `MixedHessianRegulariser` give `NaN`, where `EulerLagrangeLoss` throws an `ArgumentError`.
   `VariationalMidpointLoss(arch, 1.0e40)` accepts the timestep, which is `Inf` in `Float32`, and
   gives `NaN` on `Float32` data.
+
+### K10 · A training with `LNNLoss` does not lower the loss on the whole data set on every draw.
+
+- **location:** `src/loss/lnn_loss.jl:121`
+- **kind:** defect
+- **found:** 2026-11-05
+- **evidence:**
+  `scripts/verification/training_reduces_the_loss.jl` at commit `3649123`, run in full with
+  `julia --startup-file=no --project=scripts scripts/verification/training_reduces_the_loss.jl`,
+  trains `LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)` with
+  `LNNLoss` and Adam for 60 epochs with `Batch(10)`. The data are 60 points `randn(T, 2, 60)` and
+  the accelerations that a first network draw predicts at them; a second draw is trained on them,
+  after `Random.seed!(seed)`. The loss on the whole data set at the parameters after the training
+  is below its value before the training on 13 of the seeds 1 to 16 in `Float32` (the seeds 7, 9
+  and 10 fail) and on 15 of 16 in `Float64` (the seed 10 fails). `LNNLoss` is a relative norm,
+  `norm(q̈_NN − q̈) / norm(q̈)`, so its value on the whole data set is not the mean of the values on
+  the minibatches that `train!` minimises. The script checks only `VariationalMidpointLoss`.
 
 ## Found while writing the tutorial
 

@@ -23,6 +23,18 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   precision. The same training, with the assertion on one seed, runs in GeometricMachineLearning's
   suite at the commit this package was cut from.
 
+### K6 · With `activation = identity`, `input_hessian` returns an `Int64` array, not one of the parameters' element type.
+
+- **location:** `src/derivatives.jl:79`
+- **kind:** found late
+- **found:** 2026-11-04
+- **evidence:**
+  The network is linear in its input, so the compiled Hessian is the integer literal `0` in every
+  entry. For `arch = LagrangianNeuralNetwork(4; activation = identity)`,
+  `input_hessian(LagrangianDerivatives(arch), randn(T, 4, 2), NeuralNetwork(arch, CPU(), T).params)`
+  has the element type `Int64` and size `(4, 4, 2)` for `T` in `Float32` and `Float64`. The same
+  holds for a `NormalisedLagrangian` of that network, whose Hessian is that of the wrapped one.
+
 ### K7 · `LNNLoss` does not refuse an input of the wrong row count with a message of its own.
 
 - **location:** `src/loss/lnn_loss.jl`

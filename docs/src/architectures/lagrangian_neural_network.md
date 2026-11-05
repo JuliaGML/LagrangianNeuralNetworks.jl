@@ -71,6 +71,7 @@ written out rather than taken with a nested `Zygote.gradient`; its default regul
 ```@docs
 LagrangianNeuralNetworks.LagrangianArchitecture
 LagrangianNeuralNetworks.LagrangianNeuralNetwork
+LagrangianNeuralNetworks.NormalisedLagrangian
 LagrangianNeuralNetworks.softplus
 LagrangianNeuralNetworks.LagrangianDerivatives
 LagrangianNeuralNetworks.input_gradient

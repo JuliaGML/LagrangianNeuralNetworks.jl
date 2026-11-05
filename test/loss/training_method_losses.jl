@@ -33,7 +33,8 @@ function test_loss_of_a_network_matches_loss_of_its_parameters(T::DataType)
 
     vm_arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1)
     nn = NeuralNetwork(vm_arch, CPU(), T)
-    loss = VariationalMidpointLoss(vm_arch, 0.05)
+    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
+    loss = VariationalMidpointLoss(vm_arch, 0.5)
     input, output = randn(T, 2, 5), randn(T, 1, 5)
     @test loss(nn, input, output) == loss(params(nn), input, output)
     @test loss(nn, input, output) isa T
@@ -52,7 +53,8 @@ element type is what decides the result's.
 function test_timestep_does_not_widen_the_element_type(T::DataType, n::Integer = 1)
     lagrangian = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     psl = params(NeuralNetwork(lagrangian, CPU(), T))
-    for timestep in (0.05, 0.05f0)
+    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
+    for timestep in (0.5, 0.5f0)
         @test VariationalMidpointLoss(lagrangian, timestep)(
             psl, randn(T, 2n, 5), randn(T, n, 5)) isa T
     end
@@ -204,7 +206,8 @@ end
 function test_variational_loss_gradient(T::DataType, n::Integer = 1)
     arch = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     nn = NeuralNetwork(arch, CPU(), T)
-    loss = VariationalMidpointLoss(arch, 0.05)
+    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
+    loss = VariationalMidpointLoss(arch, 0.5)
     input = randn(T, 2n, 6)
     output = randn(T, n, 6)
 
@@ -216,6 +219,7 @@ function test_variational_loss_gradient(T::DataType, n::Integer = 1)
     @test keys(dp) == keys(params(nn))
     @test eltype(dp.L1.W) === T
     @test !all(iszero, dp.L1.W)
+    @test all(isfinite, dp.L1.W)
 end
 
 @testset "VariationalMidpointLoss is differentiable ($T)" for T in REAL_ELTYPES

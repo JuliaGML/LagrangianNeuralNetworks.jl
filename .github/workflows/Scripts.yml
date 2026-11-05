@@ -63,4 +63,6 @@ jobs:
             - name: Verification scripts, in full
               run: julia --startup-file=no --project=scripts scripts/runscripts.jl verification
             - name: Reproduction scripts, smoke sizes
+              # Runs after a red verification step too, so that one verdict does not hide the other.
+              if: success() || failure()
               run: julia --startup-file=no --project=scripts scripts/runscripts.jl reproduction

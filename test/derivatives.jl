@@ -118,8 +118,9 @@ function AbstractNeuralNetworks.Chain(::UnitNetwork)
     Chain(Dense(1, 1, softplus), Linear(1, 1; use_bias = false))
 end
 
-# The split form of `softplus` makes its compiled derivatives the logistic and `σ(1 - σ)`, with no
-# tie-break at the origin: both branches have those derivatives there.
+# The registered derivative of `softplus` is the logistic, and that of the logistic `σ(1 - σ)`, so
+# the compiled derivatives are those two functions and no branch of either definition is
+# differentiated: the tie-break at the origin changes nothing.
 @testset "the compiled derivatives of softplus against the logistic ($T)" for T in REAL_ELTYPES
     arch = UnitNetwork()
     ps = params(NeuralNetwork(arch, CPU(), T))
@@ -161,5 +162,29 @@ end
     # different mistake from the overflow.
     if T === Float32
         @test isapprox(values[1], 0.19830064f0; rtol = 1.0e-5)
+    end
+end
+
+# The parameter gradient runs back through the compiled expression, and so through the logistic,
+# whose two branches keep `exp` from overflowing: a single branch gives `Inf / Inf` or `inv(Inf)`
+# times `-Inf`, a `NaN` that the value alone can miss.
+@testset "the parameter gradient at a large velocity ($T)" for T in REAL_ELTYPES
+    Random.seed!(1234)
+    arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
+    ps = params(NeuralNetwork(arch, CPU(), T))
+    loss = EulerLagrangeLoss(arch)
+
+    for v in T[0.5, 50, 100, 1000, -1000]
+        input, output = reshape(T[0.1, v], 2, 1), zeros(T, 1, 1)
+        value = loss(ps, input, output)
+        @test value isa T
+        @test isfinite(value)
+        dp = Zygote.gradient(p -> loss(p, input, output), ps)[1]
+        @test eltype(dp.L1.W) === T
+        for layer in (:L1, :L2)
+            @test all(isfinite, getproperty(dp, layer).W)
+            @test all(isfinite, getproperty(dp, layer).b)
+        end
+        @test all(isfinite, dp.L3.W)
     end
 end

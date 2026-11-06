@@ -19,7 +19,7 @@ using ChainRulesCore: NoTangent
 # expressions, not nested `Zygote` calls: see `LagrangianDerivatives`.
 import SymbolicNeuralNetworks
 using SymbolicNeuralNetworks: SymbolicNeuralNetwork, derivative
-using Symbolics: Symbolics, @register_symbolic
+using Symbolics: Symbolics, @register_derivative, @register_symbolic
 
 """
     LagrangianArchitecture <: Architecture

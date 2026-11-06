@@ -13,14 +13,24 @@ not learn the harmonic oscillator: the solve against ``\nabla_{\dot{q}}\nabla_{\
 amplifies every sample where that block is near zero. With softplus it does;
 `scripts/reproduction/k2_harmonic_oscillator.jl` trains it on 16 seeds in each precision.
 
-The derivative of `softplus` is the logistic ``\sigma`` and its second derivative
-``\sigma(1 - \sigma)``, both bounded, so the compiled first and second derivatives of a network
-are finite in `Float32` and in `Float64`. The branches agree at `0` to every order, so their
-tie-break changes no derivative.
+`softplus` is a symbolic primitive, so the compiled first and second derivatives of a network are
+the logistic ``\sigma`` and its derivative ``\sigma(1 - \sigma)``, both bounded and finite in
+`Float32` and in `Float64`: the symbolic derivative of `softplus` is registered as the logistic,
+and the split is never differentiated symbolically, so its tie-break at `0` changes no derivative.
 
 LogExpFunctions also exports a `softplus`; a module that loads both packages qualifies the name.
 """
-softplus(x) = ifelse(x > zero(x), x + log1p(exp(-x)), log1p(exp(x)))
+softplus(x) = x > zero(x) ? x + log1p(exp(-x)) : log1p(exp(x))
+
+# The logistic, the registered derivative of `softplus` and of itself, split at `0` so that `exp`
+# neither overflows nor loses its relative accuracy: `inv` of a sum that grows with `x` above `0`,
+# a ratio of two quantities that differ by `1` below it.
+_logistic(x) = x > zero(x) ? inv(one(x) + exp(-x)) : exp(x) / (one(x) + exp(x))
+
+@register_symbolic softplus(x)
+@register_symbolic _logistic(x)
+@register_derivative softplus(x) 1 _logistic(x)
+@register_derivative _logistic(x) 1 _logistic(x) * (1 - _logistic(x))
 
 """
     LagrangianNeuralNetwork(dimin; width = dimin, nhidden = 1, activation = softplus)

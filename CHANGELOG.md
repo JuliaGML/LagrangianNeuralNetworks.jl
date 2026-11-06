@@ -13,9 +13,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
 
 * **softplus is the default activation of `LagrangianNeuralNetwork`, in place of `tanh`.** This
   fixes K2: with `tanh`, `LNNLoss` does not learn the 1D harmonic oscillator, and its loss ends near
-  1, the loss of the prediction `q̈ = 0`. `softplus` is exported as
-  `softplus(x) = ifelse(x > 0, x + log1p(exp(-x)), log1p(exp(x)))`, the split form of
-  `log(1 + exp(x))`.
+  1, the loss of the prediction `q̈ = 0`. `softplus` is exported as the split form of
+  `log(1 + exp(x))`, `softplus(x) = x > zero(x) ? x + log1p(exp(-x)) : log1p(exp(x))`, and
+  registered as a symbolic primitive whose derivative is the logistic.
   `scripts/reproduction/k2_harmonic_oscillator.jl` trains the oscillator on the seeds 1 to 16 in
   each precision, and exits 1 when fewer than 14 of a precision end below a loss of 0.25. A network
   built with the default activation computes other values than before; pass

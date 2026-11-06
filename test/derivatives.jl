@@ -141,8 +141,8 @@ end
     end
 end
 
-# The base form `log(1 + exp(x))` returns `NaN` here in `Float32`, from a preactivation near 47 at
-# the velocity 60; the split form keeps the Hessian and the loss finite.
+# The registered logistic keeps the Hessian finite: at `|v| = 1000` the first layer's `softplus`
+# value feeds the second layer.
 @testset "the Hessian and the loss at a large velocity ($T)" for T in REAL_ELTYPES
     Random.seed!(1234)
     arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)

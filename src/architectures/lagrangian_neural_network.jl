@@ -22,9 +22,10 @@ LogExpFunctions also exports a `softplus`; a module that loads both packages qua
 """
 softplus(x) = x > zero(x) ? x + log1p(exp(-x)) : log1p(exp(x))
 
-# The logistic, the registered derivative of `softplus` and of itself, split at `0` so that `exp`
-# neither overflows nor loses its relative accuracy: `inv` of a sum that grows with `x` above `0`,
-# a ratio of two quantities that differ by `1` below it.
+# The logistic, the registered derivative of `softplus`, whose own derivative is registered as
+# `σ(1 - σ)`. It is split at `0` so that `exp` neither overflows nor loses its relative
+# accuracy: `inv` of a sum within `[1, 2]` above `0`, a ratio of two quantities that
+# differ by `1` below it.
 _logistic(x) = x > zero(x) ? inv(one(x) + exp(-x)) : exp(x) / (one(x) + exp(x))
 
 @register_symbolic softplus(x)

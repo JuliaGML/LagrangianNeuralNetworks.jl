@@ -131,9 +131,12 @@ end
     σ(x) = 1 / (1 + exp(-x))
     for v in (T(-3), T(-1.0e-6), T(0), T(1.0e-6), T(3))
         x = reshape([v], 1, 1)
-        @test isapprox(input_gradient(D, x, ps)[1, 1], σ(v); rtol = sqrt(eps(T)))
-        @test isapprox(input_hessian(D, x, ps)[1, 1, 1], σ(v) * (1 - σ(v));
-            rtol = sqrt(eps(T)))
+        g = input_gradient(D, x, ps)[1, 1]
+        H = input_hessian(D, x, ps)[1, 1, 1]
+        @test g isa T
+        @test H isa T
+        @test isapprox(g, σ(v); rtol = sqrt(eps(T)))
+        @test isapprox(H, σ(v) * (1 - σ(v)); rtol = sqrt(eps(T)))
     end
     # A `max`/`abs` form gives `-1/2` here.
     @test isapprox(input_gradient(D, reshape(T[0], 1, 1), ps)[1, 1], T(0.5);

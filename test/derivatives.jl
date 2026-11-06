@@ -108,3 +108,51 @@ end
     # hold no Hessian; its regulariser compiles its own.
     @test VariationalMidpointLoss(arch, T(0.05)).derivatives.hessian === nothing
 end
+
+# A network whose value is `softplus` of its one input exactly: one neuron of weight 1 and bias 0,
+# then a weight-1 linear layer.
+struct UnitNetwork <: Architecture end
+
+AbstractNeuralNetworks.dim(::UnitNetwork) = 1
+function AbstractNeuralNetworks.Chain(::UnitNetwork)
+    Chain(Dense(1, 1, softplus), Linear(1, 1; use_bias = false))
+end
+
+# The split form of `softplus` makes its compiled derivatives the logistic and `σ(1 - σ)`, with no
+# tie-break at the origin: both branches have those derivatives there.
+@testset "the compiled derivatives of softplus against the logistic ($T)" for T in REAL_ELTYPES
+    arch = UnitNetwork()
+    ps = params(NeuralNetwork(arch, CPU(), T))
+    ps.L1.W .= 1
+    ps.L1.b .= 0
+    ps.L2.W .= 1
+    D = LagrangianDerivatives(arch)
+
+    σ(x) = 1 / (1 + exp(-x))
+    for v in (T(-3), T(-1.0e-6), T(0), T(1.0e-6), T(3))
+        x = reshape([v], 1, 1)
+        @test isapprox(input_gradient(D, x, ps)[1, 1], σ(v); rtol = sqrt(eps(T)))
+        @test isapprox(input_hessian(D, x, ps)[1, 1, 1], σ(v) * (1 - σ(v));
+            rtol = sqrt(eps(T)))
+    end
+    # A `max`/`abs` form gives `-1/2` here.
+    @test isapprox(input_gradient(D, reshape(T[0], 1, 1), ps)[1, 1], T(0.5);
+        rtol = sqrt(eps(T)))
+end
+
+# The base form `log(1 + exp(x))` gave `NaN` here in `Float32`, from a preactivation near 47 at the
+# velocity 60; the split form keeps the Hessian and the loss finite.
+@testset "the Hessian and the loss at a large velocity" begin
+    Random.seed!(1234)
+    arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
+    ps = params(NeuralNetwork(arch, CPU(), Float32))
+    D = LagrangianDerivatives(arch)
+    for v in Float32[50, 60, 100, 1000, -1000]
+        @test all(isfinite, input_hessian(D, reshape(Float32[0.1, v], 2, 1), ps))
+    end
+
+    loss = EulerLagrangeLoss(arch)
+    values = [loss(ps, reshape(Float32[0.1, v], 2, 1), zeros(Float32, 1, 1))
+              for v in Float32[50, 60, 100]]
+    @test all(isfinite, values)
+end

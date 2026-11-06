@@ -33,8 +33,7 @@ function test_loss_of_a_network_matches_loss_of_its_parameters(T::DataType)
 
     vm_arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1)
     nn = NeuralNetwork(vm_arch, CPU(), T)
-    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
-    loss = VariationalMidpointLoss(vm_arch, 0.5)
+    loss = VariationalMidpointLoss(vm_arch, 0.05)
     input, output = randn(T, 2, 5), randn(T, 1, 5)
     @test loss(nn, input, output) == loss(params(nn), input, output)
     @test loss(nn, input, output) isa T
@@ -53,8 +52,7 @@ element type is what decides the result's.
 function test_timestep_does_not_widen_the_element_type(T::DataType, n::Integer = 1)
     lagrangian = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     psl = params(NeuralNetwork(lagrangian, CPU(), T))
-    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
-    for timestep in (0.5, 0.5f0)
+    for timestep in (0.05, 0.05f0)
         @test VariationalMidpointLoss(lagrangian, timestep)(
             psl, randn(T, 2n, 5), randn(T, n, 5)) isa T
     end
@@ -206,8 +204,7 @@ end
 function test_variational_loss_gradient(T::DataType, n::Integer = 1)
     arch = LagrangianNeuralNetwork(2n; width = 4, nhidden = 1)
     nn = NeuralNetwork(arch, CPU(), T)
-    # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
-    loss = VariationalMidpointLoss(arch, 0.5)
+    loss = VariationalMidpointLoss(arch, 0.05)
     input = randn(T, 2n, 6)
     output = randn(T, n, 6)
 
@@ -259,4 +256,34 @@ end
 
 @testset "the default regulariser separates a null Lagrangian (K3) ($T)" for T in REAL_ELTYPES
     test_null_lagrangian_against_the_oscillator(T)
+end
+
+# The shapes at which the test tree evaluates `VariationalMidpointLoss`: the network of each call
+# site and its batch size. `nhidden` is 1 by default, so the plain network of the architecture
+# tests and the network of the two testsets below share a shape.
+const SWEEP_SHAPES = (
+    ("the network of test/architectures/lagrangian_neural_network.jl",
+        () -> LagrangianNeuralNetwork(2; width = 4), 5),
+    ("the wrapper of test/architectures/normalised_lagrangian.jl",
+        () -> NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
+            base = [0.3, -0.2], value = 0.37, momentum = [0.5]), 5),
+    ("the network of test/loss/losses.jl", () -> LagrangianNeuralNetwork(2; width = 4), 3),
+    ("the network of the loss-of-its-parameters test",
+        () -> LagrangianNeuralNetwork(2; width = 4, nhidden = 1), 5),
+    ("the network of the gradient test",
+        () -> LagrangianNeuralNetwork(2; width = 4, nhidden = 1), 6)
+)
+
+# The default regulariser reads the input Hessian at the midpoint velocity `(q₁ - q₀)/Δt`, which a
+# small timestep makes large; the loss must stay finite at the timestep of the call sites.
+@testset "the losses at a small timestep ($(name))" for (name, make, batch) in SWEEP_SHAPES
+    arch = make()
+    loss = VariationalMidpointLoss(arch, 0.05)
+    nonfinite = 0
+    for seed in 1:200
+        Random.seed!(seed)
+        ps = params(NeuralNetwork(arch, CPU(), Float32))
+        nonfinite += !isfinite(loss(ps, randn(Float32, 2, batch), randn(Float32, 1, batch)))
+    end
+    @test nonfinite == 0
 end

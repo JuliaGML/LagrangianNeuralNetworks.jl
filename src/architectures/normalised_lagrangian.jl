@@ -24,7 +24,7 @@ on the parameters. That reverse pass supports `Dense` and `Linear` layers with t
 
 `base` and `momentum` are copied at construction. `base`, `value` and `momentum` are converted to
 the element type of the parameters. Where the network of `arch` is not finite at the base point,
-as where `softplus` overflows, the network of the wrapper is not finite anywhere.
+the network of the wrapper is not finite anywhere.
 
 A `base` or a `momentum` that is no `AbstractVector` throws a `TypeError`. A `base` of a length
 other than ``2n`` or a `momentum` of a length other than ``n`` throws a `DimensionMismatch`. An odd

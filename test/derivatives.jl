@@ -141,8 +141,8 @@ end
     end
 end
 
-# The registered logistic keeps the Hessian finite: at `|v| = 1000` the first layer's `softplus`
-# value feeds the second layer.
+# The registered derivatives keep the Hessian and the loss finite at velocities where `exp` of the
+# first layer's preactivation overflows, up to `|v| = 1000`.
 @testset "the Hessian and the loss at a large velocity ($T)" for T in REAL_ELTYPES
     Random.seed!(1234)
     arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)

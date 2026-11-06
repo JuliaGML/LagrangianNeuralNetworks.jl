@@ -116,7 +116,7 @@ so that a compat-only bump can be told apart from a rename or a change in result
   velocity of about 50, and a test that evaluates that loss had to take a timestep of `0.5`. The
   split form has the logistic as its derivative and `σ(1 − σ)` as its second derivative, finite in
   both precisions; `softplus(-Inf)` is `0` and `softplus(Inf)` is `Inf`; and the value moves by at
-  most 2 ulp for `x ≥ -1`, below which the split form keeps a relative accuracy that
+  most 3 ulp for `x ≥ -1`, below which the split form keeps a relative accuracy that
   `1 + exp(x)` had lost.
   The tests that took the larger timestep take `0.05` again, and a sweep checks every shape they
   evaluate at it in `Float32` and `Float64`, and asserts the element type of every value.

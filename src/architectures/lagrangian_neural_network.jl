@@ -3,10 +3,10 @@
 
 The activation ``\log(1 + e^x)``, with the element type of `x`, evaluated in the split form
 ``x + \log(1 + e^{-x})`` for ``x > 0`` and ``\log(1 + e^{x})`` otherwise. Neither branch
-overflows: the positive one adds a term that decays to `0`, the negative one an exponent below
-`1`. For a large positive `x` the value is `x` to the accuracy of `x`, and for a large negative
-one ``e^x`` to the accuracy of `exp`. So `softplus(-Inf)` is `0`, `softplus(Inf)` is `Inf`, and
-`softplus(0)` is `log 2`.
+overflows: the positive one adds a term that decays to `0`, the negative one an exponent of at
+most `1`. For a large positive `x` the value is `x` to the accuracy of `x`, and for a large
+negative one ``e^x`` to the accuracy of `exp`. So `softplus(-Inf)` is `0`, `softplus(Inf)` is
+`Inf`, and `softplus(0)` is `log 2`.
 
 It is the default activation of [`LagrangianNeuralNetwork`](@ref). With `tanh`, `LNNLoss` does
 not learn the harmonic oscillator: the solve against ``\nabla_{\dot{q}}\nabla_{\dot{q}}L``

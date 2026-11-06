@@ -119,7 +119,7 @@ so that a compat-only bump can be told apart from a rename or a change in result
   most 2 ulp for `x ≥ -1`, below which the split form keeps a relative accuracy that
   `1 + exp(x)` had lost.
   The tests that took the larger timestep take `0.05` again, and a sweep checks every shape they
-  evaluate at it in `Float32`.
+  evaluate at it in `Float32` and `Float64`, and asserts the element type of every value.
 
 
 ## [0.1.0] — 2026-11-01

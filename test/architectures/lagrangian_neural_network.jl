@@ -47,10 +47,13 @@ end
     @test softplus(-1000.0) === 0.0
     @test softplus(-1000.0f0) === 0.0f0
     @test softplus(Inf) === Inf
+    @test softplus(Inf32) === Inf32
     @test softplus(-Inf) === 0.0
     @test softplus(-Inf32) === 0.0f0
     @test isnan(softplus(NaN))
     @test isnan(softplus(NaN32))
+    @test softplus(NaN) isa Float64
+    @test softplus(NaN32) isa Float32
 end
 
 # An architecture that is a `LagrangianArchitecture` only through the abstract type, with `dim` and

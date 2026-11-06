@@ -258,9 +258,10 @@ end
     test_null_lagrangian_against_the_oscillator(T)
 end
 
-# The shapes at which the test tree evaluates `VariationalMidpointLoss`: the network of each call
-# site and its batch size. `nhidden` is 1 by default, so the plain network of the architecture
-# tests and the network of the two testsets below share a shape.
+# The five shapes of the six call sites that evaluate `VariationalMidpointLoss` at the timestep
+# `0.05`: the network of the call site and its batch size. `nhidden` is 1 by default, so the plain
+# network of the architecture tests and the network of the loss-of-its-parameters test share a
+# shape.
 const SWEEP_SHAPES = (
     ("the network of test/architectures/lagrangian_neural_network.jl",
         () -> LagrangianNeuralNetwork(2; width = 4), 5),
@@ -276,14 +277,15 @@ const SWEEP_SHAPES = (
 
 # The default regulariser reads the input Hessian at the midpoint velocity `(q₁ - q₀)/Δt`, which a
 # small timestep makes large; the loss must stay finite at the timestep of the call sites.
-@testset "the losses at a small timestep ($(name))" for (name, make, batch) in SWEEP_SHAPES
+@testset "the losses at a small timestep ($(name), $T)" for T in REAL_ELTYPES,
+    (name, make, batch) in SWEEP_SHAPES
+
     arch = make()
     loss = VariationalMidpointLoss(arch, 0.05)
-    nonfinite = 0
-    for seed in 1:200
+    values = map(1:200) do seed
         Random.seed!(seed)
-        ps = params(NeuralNetwork(arch, CPU(), Float32))
-        nonfinite += !isfinite(loss(ps, randn(Float32, 2, batch), randn(Float32, 1, batch)))
+        loss(params(NeuralNetwork(arch, CPU(), T)), randn(T, 2, batch), randn(T, 1, batch))
     end
-    @test nonfinite == 0
+    @test all(value -> value isa T, values)
+    @test all(isfinite, values)
 end

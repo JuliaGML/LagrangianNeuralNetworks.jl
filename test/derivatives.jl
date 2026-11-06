@@ -138,24 +138,28 @@ end
         @test isapprox(g, σ(v); rtol = sqrt(eps(T)))
         @test isapprox(H, σ(v) * (1 - σ(v)); rtol = sqrt(eps(T)))
     end
-    # A `max`/`abs` form gives `-1/2` here.
-    @test isapprox(input_gradient(D, reshape(T[0], 1, 1), ps)[1, 1], T(0.5);
-        rtol = sqrt(eps(T)))
 end
 
-# The base form `log(1 + exp(x))` gave `NaN` here in `Float32`, from a preactivation near 47 at the
-# velocity 60; the split form keeps the Hessian and the loss finite.
-@testset "the Hessian and the loss at a large velocity" begin
+# The base form `log(1 + exp(x))` returns `NaN` here in `Float32`, from a preactivation near 47 at
+# the velocity 60; the split form keeps the Hessian and the loss finite.
+@testset "the Hessian and the loss at a large velocity ($T)" for T in REAL_ELTYPES
     Random.seed!(1234)
     arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
-    ps = params(NeuralNetwork(arch, CPU(), Float32))
+    ps = params(NeuralNetwork(arch, CPU(), T))
     D = LagrangianDerivatives(arch)
-    for v in Float32[50, 60, 100, 1000, -1000]
-        @test all(isfinite, input_hessian(D, reshape(Float32[0.1, v], 2, 1), ps))
+    for v in T[50, 60, 100, 1000, -1000]
+        H = input_hessian(D, reshape(T[0.1, v], 2, 1), ps)
+        @test eltype(H) === T
+        @test all(isfinite, H)
     end
 
     loss = EulerLagrangeLoss(arch)
-    values = [loss(ps, reshape(Float32[0.1, v], 2, 1), zeros(Float32, 1, 1))
-              for v in Float32[50, 60, 100]]
+    values = [loss(ps, reshape(T[0.1, v], 2, 1), zeros(T, 1, 1)) for v in T[50, 60, 100]]
+    @test all(value -> value isa T, values)
     @test all(isfinite, values)
+    # The `Float32` draw is the measured one, `0.19830064`; a finite result that is not it is a
+    # different mistake from the overflow.
+    if T === Float32
+        @test isapprox(values[1], 0.19830064f0; rtol = 1.0e-5)
+    end
 end

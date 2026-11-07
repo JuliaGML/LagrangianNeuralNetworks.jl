@@ -157,9 +157,11 @@ so that a compat-only bump can be told apart from a rename or a change in result
   (K10).
 * **The rollout, the backward error analysis and the measures have their own `core` test files.**
   `test/integrators/variational_rollout.jl` checks the midpoint's three derivatives against the
-  closed forms of a coupled quadratic Lagrangian and against central differences of a discrete
-  network, the rollout against the closed form of the harmonic oscillator's recurrence, one Newton
-  step on a linear model, the momentum form, and every guard.
+  closed forms of a coupled quadratic Lagrangian, against central differences of a discrete
+  network, and, for a nonlinear network whose input Hessian varies with the point, against the
+  derivative of `D₁L_d` that the mixed Hessian must be; then the rollout against the closed form of
+  the harmonic oscillator's recurrence, one Newton step on a linear model, the momentum form, and
+  every guard.
   `test/backward_error_analysis.jl` checks the correction against `(Δt²/24)(q² + q̇²)` on the
   oscillator and on a gauge term, the frequency the sign convention recovers to `1e-5`, the
   discrete chain rule against central differences, and the edges.

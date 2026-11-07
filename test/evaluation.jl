@@ -162,6 +162,8 @@ end
         nn, x, zeros(2, 3))
     @test_throws DimensionMismatch("x has 3 columns and the reference acceleration has 2") acceleration_error(
         nn, x, ones(1, 2))
+    @test_throws DimensionMismatch("x has 2 columns and the reference acceleration has 3") acceleration_error(
+        nn, x[:, 1:2], ones(1, 3))
     @test_throws ArgumentError("acceleration_error needs a continuous Lagrangian: a discrete one is a function of two positions, and has no velocity to differentiate") acceleration_error(
         NeuralNetwork(DiscreteLagrangianNetwork(1; width = 4), Float64), zeros(2, 3), ones(1, 3))
     @test_throws SingularException acceleration_error(no_velocity(Float64), x, ones(1, 3))

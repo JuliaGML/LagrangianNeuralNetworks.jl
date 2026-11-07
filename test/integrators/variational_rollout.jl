@@ -103,6 +103,28 @@ end
     end
 end
 
+# The mixed Hessian must be `∂_b D₁L_d` of the same pair, and a quadratic network cannot see a
+# wrong midpoint in it: with the activation `x²` and no hidden layer the input Hessian is the same
+# at every point, while `softplus` varies. The finite difference is taken in `Float64` from the
+# same parameters, on `D₁L_d`, which the first testset checks against its closed form.
+@testset "the mixed Hessian of a nonlinear network ($T)" for T in REAL_ELTYPES
+    arch = LagrangianNeuralNetwork(4; width = 4, nhidden = 1, activation = softplus)
+    nn = NeuralNetwork(arch, T)
+    model = DiscreteLagrangian(nn, 1 // 10)
+    plain = DiscreteLagrangian(same_network(arch, nn, Float64), 1 // 10)
+    h = 1.0e-5
+    tolerance = T === Float64 ? 1.0e-6 : 1.0e-3
+
+    for (a, b) in ((T[0.3, -0.2], T[0.1, 0.5]), (T[-0.6, 0.4], T[0.25, -0.35]))
+        D₁D₂ = model.D₁D₂(a, b)
+        @test eltype(D₁D₂) === T
+        af, bf = Float64.(a), Float64.(b)
+        wanted = hcat([(plain.D₁(af, bf .+ h .* e) - plain.D₁(af, bf .- h .* e)) / (2h)
+                       for e in eachcol(Matrix(I, 2, 2))]...)
+        @test maximum(abs.(Float64.(D₁D₂) .- wanted)) ≤ tolerance
+    end
+end
+
 @testset "the blocks of a discrete network ($T)" for T in REAL_ELTYPES
     arch = DiscreteLagrangianNetwork(2; width = 4)
     nn = NeuralNetwork(arch, T)
@@ -293,11 +315,12 @@ end
     @test_throws ArgumentError("a continuous Lagrangian needs a timestep: build `DiscreteLagrangian(nn, Δt)`") variational_rollout(
         nn, [1.0], [0.99], 3)
 
-    # A network keeps its own precision when the positions are of another.
+    # A network keeps its own precision when the positions are of another, so the two rollouts are
+    # the same arithmetic and agree exactly.
     narrow = DiscreteLagrangian(oscillator(Float32), δ)
     Q = variational_rollout(narrow, [1.0], [0.99], 3)
     @test eltype(Q) === Float32
-    @test Q[1, 3] ≈ variational_rollout(narrow, Float32[1], Float32[0.99], 3)[1, 3]
+    @test Q == variational_rollout(narrow, Float32[1], Float32[0.99], 3)
 
     singular = DiscreteLagrangian((a, b) -> ones(1), (a, b) -> ones(1),
         (a, b) -> zeros(1, 1))

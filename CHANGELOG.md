@@ -120,6 +120,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `1 + exp(x)` had lost.
   The tests that took the larger timestep take `0.05` again, and a sweep checks every shape they
   evaluate at it in `Float32` and `Float64`, and asserts the element type of every value.
+  The parameter gradient through `NormalisedLagrangian` was `NaN` when a preactivation at the base
+  point was below about −88 in `Float32` or −709 in `Float64`, where the reverse pass's `exp(-z)`
+  overflowed under `Zygote`, and it is finite now.
 
 
 ## [0.1.0] — 2026-11-01

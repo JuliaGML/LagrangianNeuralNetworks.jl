@@ -187,13 +187,11 @@ function variational_rollout(model::DiscreteLagrangian, q₀::AbstractVector,
     Q[:, 1] .= q₀
     N == 0 && return Q
 
-    # The positions a solve reads are the result's columns, so that the element type of the network
-    # is the one the solve runs in whatever the caller passed.
-    position = T.(q₁)
+    # Each solve reads the result's columns, so the positions it works on are the result's.
     if momentum
-        Q[:, 2] .= _solve_momentum(model, Q[:, 1], position, tolerance, maxiter)
+        Q[:, 2] .= _solve_momentum(model, Q[:, 1], q₁, tolerance, maxiter)
     else
-        Q[:, 2] .= position
+        Q[:, 2] .= q₁
     end
     for k in 1:(N - 1)
         c = _solve_next(model, Q[:, k], Q[:, k + 1], tolerance, maxiter, k + 1)

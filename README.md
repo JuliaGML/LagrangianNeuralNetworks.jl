@@ -7,17 +7,18 @@
 
 `LagrangianNeuralNetworks.jl` learns a scalar Lagrangian ``L(q, \dot{q})`` with a neural network
 and takes the dynamics from it through the Euler–Lagrange equations. It exports the architectures
-`LagrangianNeuralNetwork` and `DiscreteLagrangianNetwork`, the supertypes
-`LagrangianArchitecture` and `DiscreteLagrangianArchitecture`, the default activation `softplus`,
-the wrapper `NormalisedLagrangian`, which fixes the value and the momentum of a Lagrangian at one
-point, and four losses: `LNNLoss`, which compares the acceleration the learned Lagrangian predicts
-with accelerations in the data, `EulerLagrangeLoss`, which asks the learned Lagrangian to satisfy
-the Euler–Lagrange equations on the same data with no solve, `VariationalMidpointLoss`, which
-needs positions only, and `DiscreteEulerLagrangeLoss`, which trains a discrete Lagrangian on
-positions through the discrete Euler–Lagrange equations. `inverse_modified_lagrangian` reads the
-continuous Lagrangian that a discrete one stands for. `RegularisedLoss` adds weighted penalties
-to any of them: the regularity penalties `VelocityHessianRegulariser` and
-`MixedHessianRegulariser`, and the scale conditions `ScaleCondition` and `DiscreteScaleCondition`.
+`LagrangianNeuralNetwork` and `DiscreteLagrangianNetwork`, the supertype `LagrangianArchitecture`,
+the default activation `softplus`, the wrapper `NormalisedLagrangian`, which fixes the value and
+the momentum of a Lagrangian at one point, and four losses: `LNNLoss`, which compares the
+acceleration the learned Lagrangian predicts with accelerations in the data, `EulerLagrangeLoss`,
+which asks the learned Lagrangian to satisfy the Euler–Lagrange equations on the same data with no
+solve, `VariationalMidpointLoss`, which needs positions only, and `DiscreteEulerLagrangeLoss`,
+which trains a discrete Lagrangian on positions through the discrete Euler–Lagrange equations.
+`inverse_modified_lagrangian` reads the continuous Lagrangian that a discrete one stands for. The
+discrete network's own supertype, `DiscreteLagrangianArchitecture`, is documented and not
+exported. `RegularisedLoss` adds weighted penalties to any of them: the regularity penalties
+`VelocityHessianRegulariser` and `MixedHessianRegulariser`, and the scale conditions
+`ScaleCondition` and `DiscreteScaleCondition`.
 
 The training — the data loader, the batches, the optimiser and `train!` — is
 [GeometricMachineLearning.jl](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s. This

@@ -4,10 +4,9 @@
 takes the dynamics from that Lagrangian through the Euler–Lagrange equations.
 
 It exports the architectures `LagrangianNeuralNetwork` and
-[`DiscreteLagrangianNetwork`](@ref LagrangianNeuralNetworks.DiscreteLagrangianNetwork), their
-supertypes [`LagrangianArchitecture`](@ref LagrangianNeuralNetworks.LagrangianArchitecture) and
-[`DiscreteLagrangianArchitecture`](@ref LagrangianNeuralNetworks.DiscreteLagrangianArchitecture),
-the default activation [`softplus`](@ref LagrangianNeuralNetworks.softplus), the wrapper
+[`DiscreteLagrangianNetwork`](@ref LagrangianNeuralNetworks.DiscreteLagrangianNetwork), the
+supertype [`LagrangianArchitecture`](@ref LagrangianNeuralNetworks.LagrangianArchitecture), the
+default activation [`softplus`](@ref LagrangianNeuralNetworks.softplus), the wrapper
 [`NormalisedLagrangian`](@ref LagrangianNeuralNetworks.NormalisedLagrangian), which fixes the
 value and the momentum of a Lagrangian at one point, and four losses:
 [`LNNLoss`](@ref LagrangianNeuralNetworks.LNNLoss), which compares the acceleration
@@ -19,7 +18,9 @@ positions only, and
 [`DiscreteEulerLagrangeLoss`](@ref LagrangianNeuralNetworks.DiscreteEulerLagrangeLoss), which
 trains a discrete Lagrangian on positions through the discrete Euler–Lagrange equations.
 [`inverse_modified_lagrangian`](@ref LagrangianNeuralNetworks.inverse_modified_lagrangian) reads
-the continuous Lagrangian that a discrete one stands for.
+the continuous Lagrangian that a discrete one stands for. The discrete network's own supertype,
+[`DiscreteLagrangianArchitecture`](@ref LagrangianNeuralNetworks.DiscreteLagrangianArchitecture),
+is documented and not exported.
 [`RegularisedLoss`](@ref LagrangianNeuralNetworks.RegularisedLoss) adds weighted
 penalties to any of them: the regularity penalties
 [`VelocityHessianRegulariser`](@ref LagrangianNeuralNetworks.VelocityHessianRegulariser) and

@@ -49,7 +49,7 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `DimensionMismatch: new dimensions (1, 4) must be consistent with array length 6`, where
   `EulerLagrangeLoss` and `VariationalMidpointLoss` name the row count that the architecture needs.
 
-### K9 · The losses and the penalties do not refuse an empty batch, a column count of the output that differs from the input's, or a timestep that overflows or underflows the data's element type.
+### K9 · The losses and the penalties do not refuse an empty batch or a column count of the output that differs from the input's, and none of them, nor `inverse_modified_lagrangian`, refuses a timestep that overflows or underflows the data's element type.
 
 - **location:** `src/loss/variational_midpoint_loss.jl`, `src/loss/discrete_euler_lagrange_loss.jl`, `src/architectures/discrete_lagrangian_network.jl`
 - **kind:** defect
@@ -73,9 +73,8 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `VariationalMidpointLoss(LagrangianNeuralNetwork(4; width = 4, nhidden = 1), 1.0e-46)` on
   `randn(Float32, 4, 8)` and `randn(Float32, 2, 8)` gives `NaN32`;
   `DiscreteEulerLagrangeLoss(DiscreteLagrangianNetwork(1; width = 4), 1.0e-46)` on
-  `randn(Float32, 2, 8)` and `randn(Float32, 1, 8)` gives `1.0259647f0`, the sum of its residual
-  `0.025964737f0` at `weight = 0` and of the `1.0f0` that its
-  `MixedHessianRegulariser(arch, 1.0e-46)` gives at the zero `Λ`; and
+  `randn(Float32, 2, 8)` and `randn(Float32, 1, 8)` gives the sum of its value at `weight = 0` and
+  of the `1.0f0` that its `MixedHessianRegulariser(arch, 1.0e-46)` gives at the zero `Λ`; and
   `inverse_modified_lagrangian(NeuralNetwork(DiscreteLagrangianNetwork(1; width = 4), CPU(),
   Float32), 1.0e-46)` gives `Inf32` on a `Float32` vector of length 1 and `Float32[Inf Inf Inf]` on
   a `1 × 3` pair.

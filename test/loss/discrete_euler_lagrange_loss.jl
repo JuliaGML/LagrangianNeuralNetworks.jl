@@ -342,8 +342,10 @@ end
 A plain `Ld` is a function of two positions, so its matrix call must be that function on one column
 pair at a time: the `b`-th entry of `f(Q, V)` is `Ld(Q[:, b], V[:, b]) / Δt`, never a value that
 `Ld` computed from the whole matrix. A `Ld` written for a pair of vectors works whether it returns a
-number or a one-element array, and the result is in the element type of `Q` whatever precision `Ld`
-or the network returns.
+number or a one-element array, it is handed a pair of vectors and never a matrix, and the result is
+in the element type of `Q` whatever precision `Ld` or the network returns. The matrix path is built
+without writing into an array, so `Zygote` differentiates it, and each column of the slope is the
+slope of the same scalar at that column's pair.
 """
 function test_inverse_modified_lagrangian_plain_matrix(T::DataType; n = 2, Δt = 0.1,
         batch_size = 3)
@@ -377,13 +379,19 @@ function test_inverse_modified_lagrangian_plain_matrix(T::DataType; n = 2, Δt =
         end
     end
 
-    # The result is in the element type of `q`, not in that of what `Ld` returns.
+    # The result is in the element type of `q`, not in that of what `Ld` returns, and each column is
+    # the pair's own value: `Ld` loses precision only, it does not change the value.
     other = T === Float32 ? Float64 : Float32
     Lother(a, b) = other(sum(abs2, b - a)) / (2 * other(δ))
     g = inverse_modified_lagrangian(Lother, Δt)
     @test g(Q[:, 1], V[:, 1]) isa T
-    @test g(Q, V) isa Matrix{T}
-    @test size(g(Q, V)) == (1, batch_size)
+    values = g(Q, V)
+    @test values isa Matrix{T}
+    @test size(values) == (1, batch_size)
+    for b in 1:batch_size
+        @test isapprox(values[1, b], g(Q[:, b], V[:, b]); rtol = 8 * eps(T))
+        @test isapprox(values[1, b], sum(abs2, V[:, b]) / 2; atol = 100 * eps(Float32))
+    end
 
     # A network of the other precision does not widen the result either.
     nn = NeuralNetwork(DiscreteLagrangianNetwork(n; width = 4), CPU(), other)
@@ -392,13 +400,33 @@ function test_inverse_modified_lagrangian_plain_matrix(T::DataType; n = 2, Δt =
     @test h(Q, V) isa Matrix{T}
     @test size(h(Q, V)) == (1, batch_size)
 
-    # `Ld` never sees the matrix: one call per column pair, each in the element type of `q`,
-    # although the timestep given here is a `Float64`.
-    seen = DataType[]
-    recording(a, b) = (push!(seen, eltype(a)); sum(abs2, b - a) / (2 * δ))
+    # `Ld` never sees the matrix: one call per column pair, each a pair of vectors of the element
+    # type of `q`, although the timestep given here is a `Float64`.
+    seen = Tuple{DataType, Int, Int}[]
+    recording(a, b) = begin
+        push!(seen, (eltype(a), ndims(a), ndims(b)))
+        sum(abs2, b - a) / (2 * δ)
+    end
     inverse_modified_lagrangian(recording, 0.1)(Q, V)
     @test length(seen) == batch_size
-    @test all(==(T), seen)
+    @test all(==((T, 1, 1)), seen)
+
+    # No array is written in place, so the matrix path differentiates, and each column's slope is
+    # the slope of the same scalar at that column's pair.
+    in_v = Zygote.gradient(X -> sum(f(Q, X)), V)[1]
+    @test in_v isa Matrix{T}
+    @test size(in_v) == (n, batch_size)
+    for b in 1:batch_size
+        @test isapprox(in_v[:, b], Zygote.gradient(x -> f(Q[:, b], x), V[:, b])[1];
+            rtol = 8 * eps(T))
+    end
+    in_q = Zygote.gradient(X -> sum(f(X, V)), Q)[1]
+    @test in_q isa Matrix{T}
+    @test size(in_q) == (n, batch_size)
+    for b in 1:batch_size
+        @test isapprox(in_q[:, b], Zygote.gradient(x -> f(x, V[:, b]), Q[:, b])[1];
+            rtol = 8 * eps(T))
+    end
 
     # An empty batch is a `1 × 0` array of the same type, not an error.
     empty = f(zeros(T, n, 0), zeros(T, n, 0))
@@ -456,6 +484,15 @@ end
     g = inverse_modified_lagrangian(plain, 0.1)
     @test_throws DimensionMismatch("q and q̇ differ in size: (2,) and (1,)") g(
         zeros(2), zeros(1))
+
+    # A pair of mixed shapes misses no method: the size guard runs before any dispatch on the shape,
+    # so both methods report it as the two sizes and neither reaches `Ld` or the network.
+    mixed = ((zeros(2), zeros(2, 1)), (zeros(2, 1), zeros(2)), (zeros(2, 3), zeros(2)))
+    for (q, q̇) in mixed
+        message = "q and q̇ differ in size: $(size(q)) and $(size(q̇))"
+        @test_throws DimensionMismatch(message) f(q, q̇)
+        @test_throws DimensionMismatch(message) g(q, q̇)
+    end
 end
 
 function test_nan_data_propagate(T::DataType)

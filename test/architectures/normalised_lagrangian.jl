@@ -330,6 +330,37 @@ fd_rtol(::Type{Float32}) = 1e-2
     end
 end
 
+# A second wrapper, whose base point puts a preactivation of the wrapped network far enough below
+# `0` that `exp(-z)` overflows in both precisions.
+const FAR_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
+    base = [800.0, -800.0], value = 0.37, momentum = [0.5])
+const FAR_EL_LOSS = EulerLagrangeLoss(FAR_ARCH)
+
+@testset "the parameter gradient at a far base point ($T)" for T in REAL_ELTYPES
+    Random.seed!(1234)
+    ps = params(NeuralNetwork(FAR_ARCH, CPU(), T))
+    input, output = randn(T, 2, 5), randn(T, 1, 5)
+
+    # the two wrappers differ by a constant and a term linear in `q̇`, which leave both losses and
+    # their parameter gradients unchanged; the far base point is a hazard of the reverse pass, not
+    # another loss
+    losses = ((LNNLoss(FAR_ARCH), LNNLoss(LOSS_ARCH)), (FAR_EL_LOSS, EL_LOSS))
+    for (far_loss, near_loss) in losses
+        value = far_loss(ps, input, output)
+        @test value isa T
+        @test isfinite(value)
+
+        g = leaves(Zygote.gradient(p -> far_loss(p, input, output), ps)[1])
+        g_near = leaves(Zygote.gradient(p -> near_loss(p, input, output), ps)[1])
+        @test length(g) == length(g_near)
+        for (gi, gni) in zip(g, g_near)
+            @test eltype(gi) === T
+            @test all(isfinite, gi)
+            @test isapprox(gi, gni; rtol = 8 * eps(T))
+        end
+    end
+end
+
 @testset "the export" begin
     @test Base.isexported(LagrangianNeuralNetworks, :NormalisedLagrangian)
 end

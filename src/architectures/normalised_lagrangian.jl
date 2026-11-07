@@ -76,11 +76,12 @@ const _ReversibleActivation = Union{TanhActivation, IdentityActivation,
 _activation_function(σ::GenericActivation) = σ.σ
 _activation_function(σ) = σ
 
-# The derivative of an activation at the pre-activation `z`. That of softplus is written with
-# `exp(-z)`, which overflows to `Inf` and gives `0` for large negative `z`, where
-# `exp(z) / (1 + exp(z))` would give `NaN` for large positive `z`.
+# The derivative of an activation at the pre-activation `z`. That of softplus is the logistic,
+# registered as its derivative, whose value and whose own derivative are finite at every finite
+# `z`: `exp(-z)` alone overflows for a large negative `z` and `exp(z)` alone for a large positive
+# one.
 _activation_derivative(::TanhActivation, z) = 1 - tanh(z)^2
-_activation_derivative(::GenericActivation{typeof(softplus)}, z) = 1 / (1 + exp(-z))
+_activation_derivative(::GenericActivation{typeof(softplus)}, z) = _logistic(z)
 _activation_derivative(::GenericActivation{typeof(identity)}, z) = one(z)
 _activation_derivative(::IdentityActivation, z) = one(z)
 

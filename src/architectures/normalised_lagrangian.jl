@@ -15,7 +15,7 @@ constant and the linear gauge of a Lagrangian. With `value` and `momentum` both 
 not fixed, and is left to a condition of its own.
 
 The network takes the same input as that of `arch` and has the same parameters, nested under the
-key `L1`. Every loss of the package takes a `NormalisedLagrangian` as it takes `arch`.
+key `L1`. Every loss of a continuous Lagrangian takes a `NormalisedLagrangian` as it takes `arch`.
 
 ``\nabla_{\dot{q}}L(x_b)`` is computed in the forward pass, by a reverse pass over the layers of
 `Chain(arch)`, so it is part of the expression that `SymbolicNeuralNetworks` traces and it depends

@@ -27,7 +27,8 @@ using Symbolics: Symbolics, @register_derivative, @register_symbolic
 The supertype of an architecture whose network is a scalar Lagrangian ``L(q, \\dot{q})`` of an
 input that stacks ``q`` on ``\\dot{q}``.
 
-The losses of this package take any `LagrangianArchitecture`. A subtype needs two methods:
+The losses of a continuous Lagrangian take any `LagrangianArchitecture`; the discrete loss takes a
+[`DiscreteLagrangianArchitecture`](@ref). A subtype needs two methods:
 `AbstractNeuralNetworks.dim(arch)`, the input dimension ``2n``, and `Chain(arch)`, a chain with a
 scalar output. Without a `dim` method, `AbstractNeuralNetworks` logs an error and returns
 `nothing`, and the constructor of a loss fails there.
@@ -37,13 +38,16 @@ abstract type LagrangianArchitecture <: Architecture end
 include("derivatives.jl")
 include("architectures/lagrangian_neural_network.jl")
 include("architectures/normalised_lagrangian.jl")
+include("architectures/discrete_lagrangian_network.jl")
 include("loss/lnn_loss.jl")
 include("loss/euler_lagrange_loss.jl")
 include("loss/regularisers.jl")
 include("loss/variational_midpoint_loss.jl")
+include("loss/discrete_euler_lagrange_loss.jl")
 
 export LagrangianArchitecture, LagrangianNeuralNetwork, NormalisedLagrangian, softplus
 export EulerLagrangeLoss, LNNLoss, VariationalMidpointLoss
+export DiscreteEulerLagrangeLoss, DiscreteLagrangianNetwork, inverse_modified_lagrangian
 export RegularisedLoss, VelocityHessianRegulariser, MixedHessianRegulariser
 export ScaleCondition, DiscreteScaleCondition
 

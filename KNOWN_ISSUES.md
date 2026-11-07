@@ -49,9 +49,9 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `DimensionMismatch: new dimensions (1, 4) must be consistent with array length 6`, where
   `EulerLagrangeLoss` and `VariationalMidpointLoss` name the row count that the architecture needs.
 
-### K9 · The losses and the penalties do not refuse an empty batch, a column count of the output that differs from the input's, or a timestep that overflows the data's element type.
+### K9 · The losses and the penalties do not refuse an empty batch or a column count of the output that differs from the input's, and none of them, nor `inverse_modified_lagrangian`, refuses a timestep that overflows or underflows the data's element type.
 
-- **location:** `src/loss/variational_midpoint_loss.jl`
+- **location:** `src/loss/variational_midpoint_loss.jl`, `src/loss/discrete_euler_lagrange_loss.jl`, `src/architectures/discrete_lagrangian_network.jl`
 - **kind:** defect
 - **found:** 2026-11-04
 - **evidence:**
@@ -63,6 +63,22 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `MixedHessianRegulariser` give `NaN`, where `EulerLagrangeLoss` throws an `ArgumentError`.
   `VariationalMidpointLoss(arch, 1.0e40)` accepts the timestep, which is `Inf` in `Float32`, and
   gives `NaN` on `Float32` data.
+  `DiscreteEulerLagrangeLoss(DiscreteLagrangianNetwork(1; width = 4), 0.1)` has all three: on an
+  empty batch, `randn(2, 0)` with an output of `randn(1, 0)`, it gives `NaN`; on an input of 4
+  columns and an output of 3 it throws
+  `DimensionMismatch: number of columns of each array must match (got (4, 3))`; and with a timestep
+  of `1.0e40`, `Inf` in `Float32`, it gives `NaN` on `Float32` data.
+  A timestep of `1.0e-46` underflows instead, to `0.0f0` in `Float32`, and no loss refuses it. With
+  `Random.seed!(1234)` before the architectures and the data,
+  `VariationalMidpointLoss(LagrangianNeuralNetwork(4; width = 4, nhidden = 1), 1.0e-46)` on
+  `randn(Float32, 4, 8)` and `randn(Float32, 2, 8)` gives `NaN32`;
+  `DiscreteEulerLagrangeLoss(DiscreteLagrangianNetwork(1; width = 4), 1.0e-46)` on
+  `randn(Float32, 2, 8)` and `randn(Float32, 1, 8)` gives the sum of its value at `weight = 0` and
+  of the `1.0f0` that its `MixedHessianRegulariser(arch, 1.0e-46)` gives at the zero `Λ`; and
+  `inverse_modified_lagrangian(NeuralNetwork(DiscreteLagrangianNetwork(1; width = 4), CPU(),
+  Float32), 1.0e-46)` gives `±Inf32` on a `Float32` vector of length 1 and
+  `Float32[±Inf ±Inf ±Inf]` on a `1 × 3` pair, because the timestep is `0.0f0` there: the value is
+  the network's output divided by zero, and the sign of each entry is the draw's.
 
 ### K10 · A training with `LNNLoss` does not lower the loss on the whole data set on every draw.
 
@@ -80,6 +96,20 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   and 10 fail) and on 15 of 16 in `Float64` (the seed 10 fails). `LNNLoss` is a relative norm,
   `norm(q̈_NN − q̈) / norm(q̈)`, so its value on the whole data set is not the mean of the values on
   the minibatches that `train!` minimises. The script checks only `VariationalMidpointLoss`.
+
+### K11 · `LNNLoss`'s default constructor takes any value as its acceleration.
+
+- **location:** `src/loss/lnn_loss.jl:101`
+- **kind:** defect
+- **found:** 2026-11-07
+- **evidence:**
+  `struct LNNLoss{FT} <: NetworkLoss` has one field and no inner constructor that names its type,
+  so `LNNLoss(x)` accepts any `x` as the acceleration; the method
+  `LNNLoss(arch::LagrangianArchitecture)` only adds the intended one.
+  `LNNLoss(DiscreteLagrangianNetwork(1; width = 4))` is accepted, as a
+  `LNNLoss{DiscreteLagrangianNetwork{typeof(softplus)}}`, and fails only when it is called, with
+  `MethodError: objects of type DiscreteLagrangianNetwork{typeof(softplus)} are not callable.`,
+  rather than an `ArgumentError` at construction.
 
 ## Found while writing the tutorial
 

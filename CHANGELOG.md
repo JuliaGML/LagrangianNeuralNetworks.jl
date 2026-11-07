@@ -46,11 +46,12 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `L̃(x) = NN(x) − NN(x_b) − (q̇ − q̇_b)ᵀ(∂_q̇NN(x_b) − p_b) + c_b`, with `L̃(x_b) = value` and
   `∂_q̇L̃(x_b) = momentum` for every value of the parameters. `∂_q̇NN(x_b)` is computed inside the
   forward pass, by a reverse pass over the `Dense` and `Linear` layers of the wrapped chain, so the
-  symbolic derivatives and every loss of the package inherit the normalisation. The reverse pass
-  supports `tanh`, `softplus` and `identity`; any other activation throws an `ArgumentError` at
-  construction. `base`, `value` and `momentum` take the element type of the parameters, in the
-  forward pass and in the compiled derivatives. The package now depends on `Random`, for the
-  `AbstractRNG` of `initialparameters`, and on `Symbolics`, for `@register_symbolic`.
+  symbolic derivatives and every loss of a continuous Lagrangian inherit the normalisation. The
+  reverse pass supports `tanh`, `softplus` and `identity`; any other activation throws an
+  `ArgumentError` at construction. `base`, `value` and `momentum` take the element type of the
+  parameters, in the forward pass and in the compiled derivatives. The package now depends on
+  `Random`, for the `AbstractRNG` of `initialparameters`, and on `Symbolics`, for
+  `@register_symbolic`.
 * **`EulerLagrangeLoss`, the Euler–Lagrange residual loss of Offen 2025, App. B.** It is the mean
   over the samples of `‖∇q̇∇q̇L q̈ + (∇q∇q̇L)ᵀq̇ − ∇qL‖²`, with no solve against the velocity Hessian
   and no normalisation. The one-sample residual is `_euler_lagrange_residual`, unexported.
@@ -72,6 +73,30 @@ so that a compat-only bump can be told apart from a rename or a change in result
     (`1 − sigmoid(0.01·det(Λ)²)`, Lishkova 2023). A singular `Λ` gives `Inf`, `1` and `1/2`.
   * `ScaleCondition(arch; base, value)` and `DiscreteScaleCondition(arch, Δt; base, value)`:
     `(det ∇q̇∇q̇L(x_b) − value)²` and `(det Λ(x_b) − value)²` (Offen 2025, (B.1), (B.2)).
+* **`DiscreteLagrangianNetwork`, `DiscreteEulerLagrangeLoss` and `inverse_modified_lagrangian`, the
+  discrete Lagrangian network of Lishkova 2023.**
+  * `DiscreteLagrangianNetwork(n; width = 2n, nhidden = 1, activation = softplus)` is a scalar
+    network of the pair `[q_0; q_1]` of two positions, under its own
+    `DiscreteLagrangianArchitecture <: Architecture` and not under `LagrangianArchitecture`: its
+    input stacks two positions rather than a position and a velocity, so a loss that reads a
+    position and a velocity, such as `LNNLoss`, would take the second position for a velocity.
+    Its layers are those of `LagrangianNeuralNetwork`, and `AbstractNeuralNetworks.dim` is `2n`.
+  * `DiscreteEulerLagrangeLoss(arch, Δt; regulariser, weight = 1)` is the mean over the samples of
+    the squared discrete Euler–Lagrange residual
+    `‖D₂L_d(q_{k−1}, q_k) + D₁L_d(q_k, q_{k+1})‖²` (Lishkova 2023, (14)), on the data
+    `(input = [q_{k−1}; q_k], output = q_{k+1})`, plus `weight · regulariser(ps, input)`. Its
+    default regulariser is `MixedHessianRegulariser(arch, Δt; form = :tamed)`, the method of that
+    constructor for a discrete network, whose `Λ = −Δt·∂²L_d/∂q_0∂q_1` is read from the network's
+    own input Hessian; the forms, their thresholds and the value of a singular `Λ` are those of the
+    midpoint `L_d`.
+  * `inverse_modified_lagrangian(nn, Δt)` returns the function
+    `(q, q̇) ↦ L_d(q − Δt q̇/2, q + Δt q̇/2)/Δt`: the formula of Lishkova 2023, (4), divided by
+    `Δt` so that the result approximates the continuous Lagrangian itself, and for the midpoint
+    `L_d` of a continuous `L` it is that `L`. A plain function `Ld(q_0, q_1)` takes the place of
+    `nn`.
+  * A timestep that is not positive and finite and a weight that is negative, `NaN` or `Inf` throw
+    an `ArgumentError`; data of another row count a `DimensionMismatch`; `NaN` in the data
+    propagates to the value.
 
 ### Tests
 

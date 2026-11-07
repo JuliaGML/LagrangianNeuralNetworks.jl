@@ -176,7 +176,7 @@ end
 _energy_gradients(E, points::AbstractMatrix) = _gradient_columns(points, x -> E(x))
 
 function _gradient_columns(points::AbstractMatrix, gradient)
-    hcat((gradient(points[:, b]) for b in 1:size(points, 2))...)
+    hcat((gradient(points[:, b]) for b in axes(points, 2))...)
 end
 
 @doc raw"""
@@ -197,5 +197,5 @@ function trajectory_error(Q::AbstractMatrix, Q_ref::AbstractMatrix)
     size(Q) == size(Q_ref) || throw(DimensionMismatch(
         "the trajectories differ in size: $(size(Q)) and $(size(Q_ref))"))
     size(Q, 2) == 0 && throw(ArgumentError("there are no columns to compare"))
-    maximum(norm(Q[:, k] - Q_ref[:, k]) for k in 1:size(Q, 2))
+    maximum(norm(Q[:, k] - Q_ref[:, k]) for k in axes(Q, 2))
 end

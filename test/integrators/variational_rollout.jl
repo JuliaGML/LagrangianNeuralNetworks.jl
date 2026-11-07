@@ -330,7 +330,7 @@ end
 
 @testset "the momentum edges ($T)" for T in REAL_ELTYPES
     δ = T(1 // 10)
-    D₁, D₂, D₁D₂ = oscillator_functions(δ)
+    _, D₂, D₁D₂ = oscillator_functions(δ)
     model = DiscreteLagrangian((a, b) -> error("D₁ must not be called"), D₂, D₁D₂)
     Q = variational_rollout(model, T[1, 2], T[0.5, -0.5], 0; momentum = true)
     @test size(Q) == (2, 1)

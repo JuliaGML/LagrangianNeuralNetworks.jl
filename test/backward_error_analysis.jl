@@ -113,7 +113,6 @@ end
     # The second-order formula on the inverse modified Lagrangian, from central differences of it.
     function reference(q, q̇)
         Lq = (L_im([q + h], [q̇]) - L_im([q - h], [q̇])) / (2h)
-        Lq̇ = (L_im([q], [q̇ + h]) - L_im([q], [q̇ - h])) / (2h)
         Lqq = (L_im([q + h], [q̇]) - 2 * L_im([q], [q̇]) + L_im([q - h], [q̇])) / h^2
         Lq̇q̇ = (L_im([q], [q̇ + h]) - 2 * L_im([q], [q̇]) + L_im([q], [q̇ - h])) / h^2
         Lqq̇ = (L_im([q + h], [q̇ + h]) - L_im([q + h], [q̇ - h]) - L_im([q - h], [q̇ + h]) +

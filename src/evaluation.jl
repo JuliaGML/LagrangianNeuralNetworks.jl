@@ -158,11 +158,20 @@ function energy_alignment(E, E_ref, points::AbstractMatrix)
     for b in 1:B
         u = U[:, b]
         v = V[:, b]
+        # Each gradient is divided by its largest absolute entry before it is normalised: `norm`
+        # overflows to `Inf` at the top of the range, where the direction is lost, and it rounds a
+        # subnormal gradient to a scale of its own, where the quotient is not a unit vector. For a
+        # finite gradient the scaled one has its largest entry at 1, so its norm lies between 1 and
+        # `√(2n)`.
+        mu = maximum(abs, u)
+        iszero(mu) && continue
+        u = u / mu
+        mv = maximum(abs, v)
+        iszero(mv) && continue
+        v = v / mv
         nu, nv = norm(u), norm(v)
-        (iszero(nu) || iszero(nv)) && continue
         # The sine as the part of the unit vector `v̂` orthogonal to the unit vector `û`, which stays
-        # accurate where the two are nearly parallel, unlike a difference of two squared norms, and
-        # which does not underflow where the squared norm of a tiny gradient does.
+        # accurate where the two are nearly parallel, unlike a difference of two squared norms.
         û = u / nu
         v̂ = v / nv
         total += norm(v̂ - dot(û, v̂) * û)

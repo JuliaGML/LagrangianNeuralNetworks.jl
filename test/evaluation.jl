@@ -232,6 +232,20 @@ end
     @test abs(value - 1 / sqrt(T(2))) ≤ 4 * eps(T)
 end
 
+# A gradient parallel to `(1, 1)` stays parallel at either end of the range: at `floatmax` its norm
+# overflows to `Inf`, and at a subnormal the norm is not to scale, so the direction has to be read
+# from the largest entry rather than from the norm.
+@testset "a parallel gradient at either end of the range ($T)" for T in REAL_ELTYPES
+    for s in (floatmax(T), nextfloat(zero(T)))
+        value = energy_alignment(x -> s .* T[1, 1], x -> T[1, 1], ones(T, 2, 1))
+        @test value isa T
+        @test value ≤ 8 * eps(T)
+        swapped = energy_alignment(x -> T[1, 1], x -> s .* T[1, 1], ones(T, 2, 1))
+        @test swapped isa T
+        @test swapped ≤ 8 * eps(T)
+    end
+end
+
 # ---------------------------------------------------------------- the trajectory error
 
 @testset "two columns that differ ($T)" for T in REAL_ELTYPES

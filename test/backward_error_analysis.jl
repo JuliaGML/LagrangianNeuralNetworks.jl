@@ -49,8 +49,8 @@ function inverse_modified_oscillator(T::DataType, b)
     nn
 end
 
-# A `NeuralNetwork` of the same parameters in `Float64`, so that the finite differences are taken in
-# the precision the network's own values are compared in.
+# A `NeuralNetwork` of the same parameters in `T`, so that a finite difference of it is taken in a
+# precision wider than the network's own.
 function same_network(arch, nn, ::Type{T}) where {T}
     wide = NeuralNetwork(arch, T)
     for layer in keys(nn.params), name in keys(nn.params[layer])
@@ -94,18 +94,18 @@ end
 @testset "the discrete network through the chain rule ($T)" for T in REAL_ELTYPES
     arch = DiscreteLagrangianNetwork(1; width = 4)
     nn = NeuralNetwork(arch, T)
-    wide = same_network(arch, nn, Float64)
-    @test wide.params.L3.W == Float64.(nn.params.L3.W)
+    wide = same_network(arch, nn, BigFloat)
+    @test wide.params.L3.W == BigFloat.(nn.params.L3.W)
 
     Δt = 1 // 10
-    δ = Float64(Δt)
+    δ = BigFloat(T(Δt))
     L = modified_lagrangian(nn, Δt)
-    L_im = inverse_modified_lagrangian(wide, Δt)
-    # The reference takes central differences of the fourth order, whose truncation error is `O(h⁴)`:
-    # a second difference at step `h` has a round-off of `eps·|L|/h²`, and the bracket then divides by
-    # `L_q̇q̇`, which is why the step is `1e-3` rather than `1e-4`. `q̇` enters `L_d` as `δ·q̇/2`, so a
-    # step of `2e-2` in `q̇` is a step of `1e-3` on the Lagrangian's own inputs.
-    hq, hq̇ = 1.0e-3, 2.0e-2
+    L_im = inverse_modified_lagrangian(wide, δ)
+    # The reference is taken in `BigFloat`, and at these steps both its own round-off and the
+    # truncation error of the fourth-order stencil, `O(h⁴)` = `1e-32` at `h = 1e-8`, are far below
+    # the tolerance. `q̇` enters `L_d` as `δ·q̇/2`, so a step of `2e-7` in `q̇` is a step of `1e-8` on
+    # the Lagrangian's own inputs.
+    hq, hq̇ = BigFloat(1.0e-8), BigFloat(2.0e-7)
     weights = ((-2, 1.0), (-1, -8.0), (1, 8.0), (2, -1.0))
     second = ((-2, -1.0), (-1, 16.0), (0, -30.0), (1, 16.0), (2, -1.0))
     F(q, q̇) = L_im([q], [q̇])
@@ -124,7 +124,7 @@ end
     tolerance = T === Float64 ? 1.0e-6 : 1.0e-3
     for (q, q̇) in ((0.4, -0.3), (-0.5, 0.6), (0.2, 0.25))
         value = L(T[q], T[q̇])
-        wanted = reference(q, q̇)
+        wanted = reference(BigFloat(T(q)), BigFloat(T(q̇)))
         @test value isa T
         @test abs(value - wanted) ≤ tolerance * max(abs(value), abs(wanted))
     end

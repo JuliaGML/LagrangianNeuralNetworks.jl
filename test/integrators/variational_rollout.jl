@@ -158,14 +158,6 @@ end
     weights = ((-2, 1.0), (-1, -8.0), (1, 8.0), (2, -1.0))
     h = 1.0e-5
     h₂ = 1.0e-3
-    # `∂/∂a_i` of the network's value by the fourth-order stencil.
-    function slope(x, y, i, step)
-        total = 0.0
-        for (k, w) in weights
-            total += w * value(vcat(x .+ k * step * basis(i), y))
-        end
-        total / (12 * step)
-    end
     # `∂²/∂a_i∂b_j` by the same stencil in each argument.
     function curl(x, y, i, j, step)
         total = 0.0

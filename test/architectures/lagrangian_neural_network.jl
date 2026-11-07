@@ -35,7 +35,7 @@ end
     @test softplus(T(0)) == log(T(2))
     for x in (T(1), T(-30), T(20))
         @test softplus(x) isa T
-        @test isapprox(softplus(x), log1p(exp(x)); rtol = 8 * eps(T))
+        @test isapprox(softplus(x), log1p(exp(big(x))); rtol = 8 * eps(T))
     end
 end
 

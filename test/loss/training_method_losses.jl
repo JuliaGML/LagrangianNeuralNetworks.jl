@@ -260,8 +260,8 @@ end
 
 # The shapes of the six call sites that evaluate `VariationalMidpointLoss` at the timestep
 # `0.05`: the network of the call site and its batch size. `nhidden` is 1 by default, so the plain
-# network with a batch of 5 appears twice, for the network of the architecture tests and for the
-# network of the loss-of-its-parameters test.
+# network with a batch of 5 is the shape of three of them — the architecture test, the
+# loss-of-its-parameters test and the timestep test — and is swept twice for the first two.
 const SWEEP_SHAPES = (
     ("the network of test/architectures/lagrangian_neural_network.jl",
         () -> LagrangianNeuralNetwork(2; width = 4), 5),

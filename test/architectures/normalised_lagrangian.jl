@@ -336,8 +336,8 @@ const FAR_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
     base = [800.0, -800.0], value = 0.37, momentum = [0.5])
 const FAR_EL_LOSS = EulerLagrangeLoss(FAR_ARCH)
 
-# A third, at which `exp(z)` overflows too: the positive preactivation at `[800, -800]` is `212` in
-# `Float64`, below the `709.78` above which `exp(z)` overflows there.
+# A third, at which `exp(z)` overflows too: the largest positive preactivation at `[800, -800]` is
+# `212` in `Float64`, below the `709.78` above which `exp(z)` overflows there.
 const HIGH_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
     base = [4000.0, -4000.0], value = 0.37, momentum = [0.5])
 const HIGH_LNN_LOSS = LNNLoss(HIGH_ARCH)

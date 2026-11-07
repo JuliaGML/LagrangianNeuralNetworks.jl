@@ -21,8 +21,7 @@ include("../helpers/eltypes.jl")
 
     losses = (
         (LNNLoss(lnn_arch), lnn_arch, lnn_input, lnn_output),
-        # At `0.05` the midpoint velocity reaches the `Float32` softplus Hessian overflow (K8).
-        (VariationalMidpointLoss(lnn_arch, 0.5), lnn_arch, lnn_input, lnn_output),
+        (VariationalMidpointLoss(lnn_arch, 0.05), lnn_arch, lnn_input, lnn_output),
         (EulerLagrangeLoss(lnn_arch), lnn_arch, lnn_input, lnn_output)
     )
     for (loss, arch, input, output) in losses

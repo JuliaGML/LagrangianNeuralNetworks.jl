@@ -35,15 +35,25 @@ end
     @test softplus(T(0)) == log(T(2))
     for x in (T(1), T(-30), T(20))
         @test softplus(x) isa T
-        @test isapprox(softplus(x), log(1 + exp(x)); rtol = 8 * eps(T))
+        @test isapprox(softplus(x), log1p(exp(big(x))); rtol = 8 * eps(T))
     end
 end
 
-# The overflow is documented, not guarded: `exp` overflows above about 709 in `Float64` and about
-# 88 in `Float32`.
-@testset "softplus overflows to Inf" begin
-    @test softplus(1000.0) == Inf
-    @test softplus(100.0f0) === Inf32
+# Neither branch of the split overflows, and each edge of the argument carries the value of the
+# limit: `0` where `exp(x)` underflows, the argument itself where it is large, and `Inf` at `Inf`.
+@testset "softplus at the edges of both branches" begin
+    @test softplus(1000.0) == 1000.0
+    @test softplus(100.0f0) === 100.0f0
+    @test softplus(-1000.0) === 0.0
+    @test softplus(-1000.0f0) === 0.0f0
+    @test softplus(Inf) === Inf
+    @test softplus(Inf32) === Inf32
+    @test softplus(-Inf) === 0.0
+    @test softplus(-Inf32) === 0.0f0
+    @test isnan(softplus(NaN))
+    @test isnan(softplus(NaN32))
+    @test softplus(NaN) isa Float64
+    @test softplus(NaN32) isa Float32
 end
 
 # An architecture that is a `LagrangianArchitecture` only through the abstract type, with `dim` and
@@ -60,13 +70,10 @@ AbstractNeuralNetworks.Chain(arch::WrappedLagrangian) = Chain(arch.inner)
     wrapped = WrappedLagrangian(inner)
 
     @test NetworkLoss(wrapped) isa LNNLoss
-    # The timestep of `VariationalMidpointLoss` keeps the midpoint velocity of random positions
-    # small: at `0.05` it reaches the overflow of softplus in `Float32`, where the Hessian of its
-    # default regulariser is `NaN`, and `NaN == NaN` is false.
     pairs = (
         (lagrangian_acceleration(wrapped), lagrangian_acceleration(inner)),
         (LNNLoss(wrapped), LNNLoss(inner)),
-        (VariationalMidpointLoss(wrapped, 0.5), VariationalMidpointLoss(inner, 0.5)),
+        (VariationalMidpointLoss(wrapped, 0.05), VariationalMidpointLoss(inner, 0.05)),
         (EulerLagrangeLoss(wrapped), EulerLagrangeLoss(inner))
     )
 

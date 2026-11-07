@@ -13,8 +13,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
 
 * **softplus is the default activation of `LagrangianNeuralNetwork`, in place of `tanh`.** This
   fixes K2: with `tanh`, `LNNLoss` does not learn the 1D harmonic oscillator, and its loss ends near
-  1, the loss of the prediction `q̈ = 0`. `softplus(x) = log(1 + exp(x))` is exported. It overflows
-  to `Inf` above about 709 in `Float64` and about 88 in `Float32`, with no guard.
+  1, the loss of the prediction `q̈ = 0`. `softplus` is exported as the split form of
+  `log(1 + exp(x))`, `softplus(x) = x > zero(x) ? x + log1p(exp(-x)) : log1p(exp(x))`, and
+  registered as a symbolic primitive whose derivative is the logistic.
   `scripts/reproduction/k2_harmonic_oscillator.jl` trains the oscillator on the seeds 1 to 16 in
   each precision, and exits 1 when fewer than 14 of a precision end below a loss of 0.25. A network
   built with the default activation computes other values than before; pass
@@ -105,6 +106,23 @@ so that a compat-only bump can be told apart from a rename or a change in result
     stops with `FieldError: type Core.TypeName has no field mt`; Aqua 0.8.14 adapts to the method
     tables of Julia 1.12. Aqua 0.8.0 also reports 21 method ambiguities of other packages and fails
     its persistent-task check here.
+
+### Bug Fixes
+
+* **`softplus` is finite everywhere, its compiled derivatives with it, and the record of its
+  overflow goes.** This fixes K8: `log(1 + exp(x))` lost its relative accuracy below about −37 in
+  `Float64` and −17 in `Float32`, and its compiled second derivative was `NaN` from a preactivation
+  near 47, so `EulerLagrangeLoss` and the default `VariationalMidpointLoss` gave `NaN` above a
+  velocity of about 50, and a test that evaluates that loss had to take a timestep of `0.5`. The
+  split form has the logistic as its derivative and `σ(1 − σ)` as its second derivative, finite in
+  both precisions; `softplus(-Inf)` is `0` and `softplus(Inf)` is `Inf`; and the value moves by at
+  most 3 ulp for `x ≥ -1`, below which the split form keeps a relative accuracy that
+  `1 + exp(x)` had lost.
+  The tests that took the larger timestep take `0.05` again, and a sweep checks every shape they
+  evaluate at it in `Float32` and `Float64`, and asserts the element type of every value.
+  The parameter gradient through `NormalisedLagrangian` was `NaN` when a preactivation at the base
+  point was below about −88 in `Float32` or −709 in `Float64`, where the reverse pass's `exp(-z)`
+  overflowed under `Zygote`, and it is finite now.
 
 
 ## [0.1.0] — 2026-11-01

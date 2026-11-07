@@ -108,3 +108,83 @@ end
     # hold no Hessian; its regulariser compiles its own.
     @test VariationalMidpointLoss(arch, T(0.05)).derivatives.hessian === nothing
 end
+
+# A network whose value is `softplus` of its one input exactly: one neuron of weight 1 and bias 0,
+# then a weight-1 linear layer.
+struct UnitNetwork <: Architecture end
+
+AbstractNeuralNetworks.dim(::UnitNetwork) = 1
+function AbstractNeuralNetworks.Chain(::UnitNetwork)
+    Chain(Dense(1, 1, softplus), Linear(1, 1; use_bias = false))
+end
+
+# The registered derivative of `softplus` is the logistic, and that of the logistic `σ(1 - σ)`, so
+# the compiled derivatives are those two functions and no branch of either definition is
+# differentiated: the tie-break at the origin changes nothing.
+@testset "the compiled derivatives of softplus against the logistic ($T)" for T in REAL_ELTYPES
+    arch = UnitNetwork()
+    ps = params(NeuralNetwork(arch, CPU(), T))
+    ps.L1.W .= 1
+    ps.L1.b .= 0
+    ps.L2.W .= 1
+    D = LagrangianDerivatives(arch)
+
+    σ(x) = 1 / (1 + exp(-x))
+    for v in (T(-3), T(-1.0e-6), T(0), T(1.0e-6), T(3))
+        x = reshape([v], 1, 1)
+        g = input_gradient(D, x, ps)[1, 1]
+        H = input_hessian(D, x, ps)[1, 1, 1]
+        @test g isa T
+        @test H isa T
+        @test isapprox(g, σ(v); rtol = sqrt(eps(T)))
+        @test isapprox(H, σ(v) * (1 - σ(v)); rtol = sqrt(eps(T)))
+    end
+end
+
+# The registered derivatives keep the Hessian and the loss finite at velocities where `exp` of the
+# first layer's preactivation overflows, up to `|v| = 1000`.
+@testset "the Hessian and the loss at a large velocity ($T)" for T in REAL_ELTYPES
+    Random.seed!(1234)
+    arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
+    ps = params(NeuralNetwork(arch, CPU(), T))
+    D = LagrangianDerivatives(arch)
+    for v in T[50, 60, 100, 1000, -1000]
+        H = input_hessian(D, reshape(T[0.1, v], 2, 1), ps)
+        @test eltype(H) === T
+        @test all(isfinite, H)
+    end
+
+    loss = EulerLagrangeLoss(arch)
+    values = [loss(ps, reshape(T[0.1, v], 2, 1), zeros(T, 1, 1)) for v in T[50, 60, 100]]
+    @test all(value -> value isa T, values)
+    @test all(isfinite, values)
+    # The `Float32` draw is the measured one, `0.19830064`; a finite result that is not it is a
+    # different mistake from the overflow.
+    if T === Float32
+        @test isapprox(values[1], 0.19830064f0; rtol = 1.0e-5)
+    end
+end
+
+# The parameter gradient runs back through the compiled expression, and so through the logistic,
+# whose two branches keep `exp` from overflowing: a single branch gives `Inf / Inf` or `inv(Inf)`
+# times `-Inf`, a `NaN` that the value alone can miss.
+@testset "the parameter gradient at a large velocity ($T)" for T in REAL_ELTYPES
+    Random.seed!(1234)
+    arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)
+    ps = params(NeuralNetwork(arch, CPU(), T))
+    loss = EulerLagrangeLoss(arch)
+
+    for v in T[0.5, 50, 100, 1000, -1000]
+        input, output = reshape(T[0.1, v], 2, 1), zeros(T, 1, 1)
+        value = loss(ps, input, output)
+        @test value isa T
+        @test isfinite(value)
+        dp = Zygote.gradient(p -> loss(p, input, output), ps)[1]
+        @test eltype(dp.L1.W) === T
+        for layer in (:L1, :L2)
+            @test all(isfinite, getproperty(dp, layer).W)
+            @test all(isfinite, getproperty(dp, layer).b)
+        end
+        @test all(isfinite, dp.L3.W)
+    end
+end

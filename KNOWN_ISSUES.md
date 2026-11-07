@@ -49,26 +49,6 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `DimensionMismatch: new dimensions (1, 4) must be consistent with array length 6`, where
   `EulerLagrangeLoss` and `VariationalMidpointLoss` name the row count that the architecture needs.
 
-### K8 · The input Hessian of a softplus network is not finite in `Float32` at a large preactivation, so `EulerLagrangeLoss` and the default `VariationalMidpointLoss` can be `NaN`.
-
-- **location:** `src/architectures/lagrangian_neural_network.jl:18`
-- **kind:** defect
-- **found:** 2026-11-04
-- **evidence:**
-  The compiled second derivative of `softplus(x) = log(1 + exp(x))` is not finite in `Float32` at
-  a preactivation well below the 88 at which the docstring of `softplus` says `exp` overflows. For
-  `arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)`, drawn in
-  `Float32` under `Random.seed!(1234)`, and `D = LagrangianDerivatives(arch)`,
-  `input_hessian(D, reshape(Float32[0.1, v], 2, 1), ps)` is finite at `v = 20`, `40` and `50`,
-  and not finite at `v = 60`, `100` and `1000`. The largest preactivation of the first layer is
-  39.2 at `v = 50` and 47.1 at `v = 60`. `EulerLagrangeLoss(arch)` reads this Hessian at the
-  input velocity: on the same network, with the output `zeros(Float32, 1, 1)`, it gives `0.1983001`
-  at `v = 50` and `NaN` at `v = 60`. The default regulariser of `VariationalMidpointLoss` reads it
-  at the midpoint velocity `(q₁ − q₀)/Δt`, which is large for a small `Δt` and positions that are
-  not close. With `Random.seed!(1)`, a `Float32` draw of the network and `randn(Float32, 2, 10)`,
-  `randn(Float32, 1, 10)` as the data, `VariationalMidpointLoss(arch, 0.05)` gives `NaN`, and the
-  same loss with `weight = 0` gives `0.018962236`.
-
 ### K9 · The losses and the penalties do not refuse an empty batch, a column count of the output that differs from the input's, or a timestep that overflows the data's element type.
 
 - **location:** `src/loss/variational_midpoint_loss.jl`

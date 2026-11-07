@@ -264,10 +264,7 @@ const LOSS_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
 const EL_LOSS = EulerLagrangeLoss(LOSS_ARCH)
 
 @testset "three losses on the wrapper" begin
-    # The timestep of `VariationalMidpointLoss` keeps the midpoint velocity of random positions
-    # small: at `0.05` it reaches the overflow of softplus in `Float32`, where the Hessian of its
-    # default regulariser is `NaN` (K8).
-    losses = (LNNLoss(LOSS_ARCH), EL_LOSS, VariationalMidpointLoss(LOSS_ARCH, 0.5))
+    losses = (LNNLoss(LOSS_ARCH), EL_LOSS, VariationalMidpointLoss(LOSS_ARCH, 0.05))
     for T in REAL_ELTYPES, loss in losses
 
         ps = params(NeuralNetwork(LOSS_ARCH, CPU(), T))
@@ -330,6 +327,49 @@ fd_rtol(::Type{Float32}) = 1e-2
         @test eltype(gi) === T
         @test all(isfinite, gi)
         @test isapprox(gi, fdi; rtol = fd_rtol(T))
+    end
+end
+
+# A second wrapper, whose base point puts a preactivation of the wrapped network far enough below
+# `0` that `exp(-z)` overflows in both precisions.
+const FAR_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
+    base = [800.0, -800.0], value = 0.37, momentum = [0.5])
+const FAR_EL_LOSS = EulerLagrangeLoss(FAR_ARCH)
+
+# A third, at which `exp(z)` overflows too: the largest positive preactivation at `[800, -800]` is
+# `212` in `Float64`, below the `709.78` above which `exp(z)` overflows there.
+const HIGH_ARCH = NormalisedLagrangian(LagrangianNeuralNetwork(2; width = 4);
+    base = [4000.0, -4000.0], value = 0.37, momentum = [0.5])
+const HIGH_LNN_LOSS = LNNLoss(HIGH_ARCH)
+
+@testset "the parameter gradient at a far base point ($T)" for T in REAL_ELTYPES
+    Random.seed!(1234)
+    ps = params(NeuralNetwork(FAR_ARCH, CPU(), T))
+    input, output = randn(T, 2, 5), randn(T, 1, 5)
+
+    # the losses' parameter gradients are the same function of the parameters at every base point,
+    # because the two wrappers differ by a constant and a term linear in `q̇`
+    losses = ((LNNLoss(FAR_ARCH), LNNLoss(LOSS_ARCH)), (FAR_EL_LOSS, EL_LOSS))
+    for (far_loss, near_loss) in losses
+        value = far_loss(ps, input, output)
+        @test value isa T
+        @test isfinite(value)
+
+        g = leaves(Zygote.gradient(p -> far_loss(p, input, output), ps)[1])
+        g_near = leaves(Zygote.gradient(p -> near_loss(p, input, output), ps)[1])
+        @test length(g) == length(g_near)
+        for (gi, gni) in zip(g, g_near)
+            @test eltype(gi) === T
+            @test all(isfinite, gi)
+            @test isapprox(gi, gni; rtol = 8 * eps(T))
+        end
+    end
+
+    # the base point at which the derivative of `softplus` sits on both edges of `exp`
+    g = leaves(Zygote.gradient(p -> HIGH_LNN_LOSS(p, input, output), ps)[1])
+    for gi in g
+        @test eltype(gi) === T
+        @test all(isfinite, gi)
     end
 end
 

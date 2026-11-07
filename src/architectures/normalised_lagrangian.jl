@@ -24,7 +24,7 @@ on the parameters. That reverse pass supports `Dense` and `Linear` layers with t
 
 `base` and `momentum` are copied at construction. `base`, `value` and `momentum` are converted to
 the element type of the parameters. Where the network of `arch` is not finite at the base point,
-as where `softplus` overflows, the network of the wrapper is not finite anywhere.
+the network of the wrapper is not finite anywhere.
 
 A `base` or a `momentum` that is no `AbstractVector` throws a `TypeError`. A `base` of a length
 other than ``2n`` or a `momentum` of a length other than ``n`` throws a `DimensionMismatch`. An odd
@@ -76,11 +76,12 @@ const _ReversibleActivation = Union{TanhActivation, IdentityActivation,
 _activation_function(σ::GenericActivation) = σ.σ
 _activation_function(σ) = σ
 
-# The derivative of an activation at the pre-activation `z`. That of softplus is written with
-# `exp(-z)`, which overflows to `Inf` and gives `0` for large negative `z`, where
-# `exp(z) / (1 + exp(z))` would give `NaN` for large positive `z`.
+# The derivative of an activation at the pre-activation `z`. That of softplus is the logistic,
+# registered as its derivative, whose value and whose own derivative are finite at every finite
+# `z`: `exp(-z)` alone overflows for a large negative `z` and `exp(z)` alone for a large positive
+# one.
 _activation_derivative(::TanhActivation, z) = 1 - tanh(z)^2
-_activation_derivative(::GenericActivation{typeof(softplus)}, z) = 1 / (1 + exp(-z))
+_activation_derivative(::GenericActivation{typeof(softplus)}, z) = _logistic(z)
 _activation_derivative(::GenericActivation{typeof(identity)}, z) = one(z)
 _activation_derivative(::IdentityActivation, z) = one(z)
 

@@ -220,6 +220,9 @@ end
     # Only the reference's gradient is zero at this point, and it is left out as well.
     @test_throws ArgumentError("every point has a zero energy gradient, and its alignment is not defined") energy_alignment(
         E, x -> [x[1], zero(x[1])], reshape(T[0, 1 // 2], 2, 1))
+    # Only the position's gradient is zero at this point, and it is left out as well.
+    @test_throws ArgumentError("every point has a zero energy gradient, and its alignment is not defined") energy_alignment(
+        x -> zeros(T, 2), x -> T[1, 1], ones(T, 2, 1))
     @test_throws ArgumentError("there are no points to align the energies at") energy_alignment(
         E, reference, zeros(T, 2, 0))
 end
@@ -243,6 +246,17 @@ end
         swapped = energy_alignment(x -> T[1, 1], x -> s .* T[1, 1], ones(T, 2, 1))
         @test swapped isa T
         @test swapped ≤ 8 * eps(T)
+    end
+end
+
+# The sine is the part of `v̂` orthogonal to `û`, so a `v̂` that a lost direction turns into the zero
+# vector reads as parallel. A reference gradient of `s·(1, 1)` against `(1, −1)` is at right angles
+# to it, and the sine there is 1 at either end of the range only if the reference is scaled too.
+@testset "a perpendicular gradient at either end of the range ($T)" for T in REAL_ELTYPES
+    for s in (floatmax(T), nextfloat(zero(T)))
+        value = energy_alignment(x -> T[1, -1], x -> s .* T[1, 1], ones(T, 2, 1))
+        @test value isa T
+        @test abs(value - 1) ≤ 8 * eps(T)
     end
 end
 

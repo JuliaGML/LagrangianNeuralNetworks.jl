@@ -325,6 +325,14 @@ function test_inverse_modified_lagrangian_identity(T::DataType; n = 2, Δt = 0.1
         @test isapprox(f(q, v), L(q, v); atol = 100 * eps(T))
     end
 
+    # A plain `Ld` that returns one number for a whole matrix, evaluating no column by itself, gives
+    # that number in each column of the `1 × B` array that the network method gives.
+    Q, V = randn(T, n, 3), randn(T, n, 3)
+    matrix = f(Q, V)
+    @test matrix isa Matrix{T}
+    @test size(matrix) == (1, 3)
+    @test all(==(Ld(Q - δ * V / 2, Q + δ * V / 2) / δ), matrix)
+
     _, nn = hod(T, δ)
     g = inverse_modified_lagrangian(nn, Δt)
     for _ in 1:25

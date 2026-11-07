@@ -24,6 +24,12 @@ threshold: ``\Lambda`` tends to the velocity Hessian ``\nabla_{\dot{q}}\nabla_{\
 continuous Lagrangian that the network stands for as ``\Delta{}t \to 0``, so a threshold on it
 means the same as one on the velocity Hessian.
 
+The forms and their sources are those of [`MixedHessianRegulariser`](@ref) in the continuous case:
+`:inverse` is Offen & Ober-Blöbaum 2023, (11), `:tamed` is Offen & Ober-Blöbaum 2024, (34), and
+`:sigmoid` is the degeneracy term of Lishkova 2023, (14). What the method returns is a
+`DiscreteMixedHessianRegulariser`, a callable of its own type and not a
+[`MixedHessianRegulariser`](@ref).
+
 A singular ``\Lambda`` gives `Inf` for `:inverse`, `1` for `:tamed` and `1/2` for `:sigmoid`.
 
 The result `r` is called as `r(ps, input)`, with `input` the pairs ``[q_0; q_1]``: ``2n`` rows, and

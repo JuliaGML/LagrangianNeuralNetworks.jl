@@ -51,7 +51,7 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
 
 ### K9 · The losses and the penalties do not refuse an empty batch, a column count of the output that differs from the input's, or a timestep that overflows the data's element type.
 
-- **location:** `src/loss/variational_midpoint_loss.jl`
+- **location:** `src/loss/variational_midpoint_loss.jl`, `src/loss/discrete_euler_lagrange_loss.jl`
 - **kind:** defect
 - **found:** 2026-11-04
 - **evidence:**
@@ -63,6 +63,11 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `MixedHessianRegulariser` give `NaN`, where `EulerLagrangeLoss` throws an `ArgumentError`.
   `VariationalMidpointLoss(arch, 1.0e40)` accepts the timestep, which is `Inf` in `Float32`, and
   gives `NaN` on `Float32` data.
+  `DiscreteEulerLagrangeLoss(DiscreteLagrangianNetwork(1; width = 4), 0.1)` has all three: on an
+  empty batch, `randn(2, 0)` with an output of `randn(1, 0)`, it gives `NaN`; on an input of 4
+  columns and an output of 3 it throws
+  `DimensionMismatch: number of columns of each array must match (got (4, 3))`; and with a timestep
+  of `1.0e40`, `Inf` in `Float32`, it gives `NaN` on `Float32` data.
 
 ### K10 · A training with `LNNLoss` does not lower the loss on the whole data set on every draw.
 

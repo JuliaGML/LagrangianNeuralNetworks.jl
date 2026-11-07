@@ -77,9 +77,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
   * `DiscreteLagrangianNetwork(n; width = 2n, nhidden = 1, activation = softplus)` is a scalar
     network of the pair `[q_0; q_1]` of two positions, under its own
     `DiscreteLagrangianArchitecture <: Architecture` and not under `LagrangianArchitecture`: its
-    input stacks two positions rather than a position and a velocity, so no loss of a continuous
-    Lagrangian takes it. Its layers are those of `LagrangianNeuralNetwork`, and
-    `AbstractNeuralNetworks.dim` is `2n`.
+    input stacks two positions rather than a position and a velocity, so a loss that reads a
+    position and a velocity, such as `LNNLoss`, would take the second position for a velocity.
+    Its layers are those of `LagrangianNeuralNetwork`, and `AbstractNeuralNetworks.dim` is `2n`.
   * `DiscreteEulerLagrangeLoss(arch, Δt; regulariser, weight = 1)` is the mean over the samples of
     the squared discrete Euler–Lagrange residual
     `‖D₂L_d(q_{k−1}, q_k) + D₁L_d(q_k, q_{k+1})‖²` (Lishkova 2023, (14)), on the data

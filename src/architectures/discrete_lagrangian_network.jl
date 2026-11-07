@@ -5,9 +5,10 @@ The supertype of an architecture whose network is a discrete Lagrangian ``L_d(q_
 function of two consecutive positions (Lishkova 2023, (14)).
 
 It is no [`LagrangianArchitecture`](@ref): its input `[q_0; q_1]` stacks two positions, not a
-position and a velocity, so no loss of a continuous Lagrangian takes it. A subtype needs two
-methods, `AbstractNeuralNetworks.dim(arch)`, the input dimension ``2n``, and `Chain(arch)`, a chain
-of ``2n`` inputs with a scalar output. The subtype of the package is
+position and a velocity, so a loss that reads a position and a velocity, such as [`LNNLoss`](@ref),
+would take the second position for a velocity. A subtype needs two methods,
+`AbstractNeuralNetworks.dim(arch)`, the input dimension ``2n``, and `Chain(arch)`, a chain of ``2n``
+inputs with a scalar output. The subtype of the package is
 [`DiscreteLagrangianNetwork`](@ref), which [`DiscreteEulerLagrangeLoss`](@ref) trains and from which
 [`inverse_modified_lagrangian`](@ref) reads a continuous Lagrangian.
 """
@@ -47,15 +48,8 @@ end
 @inline AbstractNeuralNetworks.dim(arch::DiscreteLagrangianNetwork) = 2 * arch.n
 
 function Chain(nn::DiscreteLagrangianNetwork)
-    inner_layers = Tuple(
-        [Dense(nn.width, nn.width, nn.act) for _ in 1:nn.nhidden]
-    )
-
-    Chain(
-        Dense(dim(nn), nn.width, nn.act),
-        inner_layers...,
-        Linear(nn.width, 1; use_bias = false)
-    )
+    Chain(LagrangianNeuralNetwork(
+        dim(nn); width = nn.width, nhidden = nn.nhidden, activation = nn.act))
 end
 
 @doc raw"""
@@ -79,9 +73,11 @@ is that ``L`` exactly.
 discrete Lagrangian.
 
 The result `f` is called as `f(q, q̇)`: a scalar for vectors `q` and `q̇`, and a `1 × B` array for
-`n × B` matrices, in the element type of `q`, which ``\Delta{}t`` is converted to. A `q̇` of another
-size than `q` throws a `DimensionMismatch`, and so does a `q` of another row count than ``n`` with
-the network method; a timestep that is not positive and finite throws an `ArgumentError`.
+`n × B` matrices, in the element type of `q`, which ``\Delta{}t`` is converted to. A plain `Ld` that
+returns a single number for a whole matrix, evaluating no column of it by itself, gives that number
+in every column. A `q̇` of another size than `q` throws a `DimensionMismatch`, and so does a `q` of
+another row count than ``n`` with the network method; a timestep that is not positive and finite
+throws an `ArgumentError`.
 """
 function inverse_modified_lagrangian(Ld::Function, Δt::Real)
     Δt = _check_timestep(Δt)
@@ -93,7 +89,7 @@ function inverse_modified_lagrangian(
         Δt::Real)
     Δt = _check_timestep(Δt)
     n = dim(nn.architecture) ÷ 2
-    function inverse_modified_lagrangian(q::AbstractArray, q̇::AbstractArray)
+    (q::AbstractArray, q̇::AbstractArray) -> begin
         size(q, 1) == n ||
             throw(DimensionMismatch("q has $(size(q, 1)) rows, and the architecture needs $n"))
         _inverse_modified_value((a, b) -> nn(vcat(a, b)), q, q̇, Δt)
@@ -109,5 +105,8 @@ function _inverse_modified_value(Ld, q::AbstractArray, q̇::AbstractArray, Δt)
         throw(DimensionMismatch("q and q̇ differ in size: $(size(q)) and $(size(q̇))"))
     δ = eltype(q)(Δt)
     value = Ld(q - δ * q̇ / 2, q + δ * q̇ / 2) / δ
-    q isa AbstractVector ? only(value) : value
+    q isa AbstractVector && return only(value)
+    # A `Ld` that evaluates the samples together returns the `1 × B` array; one that returns a single
+    # number for the whole matrix gives it in every column.
+    value isa AbstractArray ? value : fill(value, 1, size(q, 2))
 end

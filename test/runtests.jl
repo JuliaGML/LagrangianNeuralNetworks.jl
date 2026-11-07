@@ -15,4 +15,5 @@ if "slow" in GROUPS
     @safetestset "The Euler–Lagrange residual loss" include("loss/euler_lagrange_loss.jl")
     @safetestset "The normalised Lagrangian" include("architectures/normalised_lagrangian.jl")
     @safetestset "The regularity and scale penalties" include("loss/regularisers.jl")
+    @safetestset "The discrete Euler–Lagrange loss" include("loss/discrete_euler_lagrange_loss.jl")
 end

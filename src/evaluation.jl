@@ -158,10 +158,14 @@ function energy_alignment(E, E_ref, points::AbstractMatrix)
     for b in 1:B
         u = U[:, b]
         v = V[:, b]
-        (iszero(norm(u)) || iszero(norm(v))) && continue
-        # The sine as the part of `v` orthogonal to `u`, which stays accurate where the two are
-        # nearly parallel, unlike a difference of two squared norms.
-        total += norm(v - (dot(u, v) / dot(u, u)) * u) / norm(v)
+        nu, nv = norm(u), norm(v)
+        (iszero(nu) || iszero(nv)) && continue
+        # The sine as the part of the unit vector `v̂` orthogonal to the unit vector `û`, which stays
+        # accurate where the two are nearly parallel, unlike a difference of two squared norms, and
+        # which does not underflow where the squared norm of a tiny gradient does.
+        û = u / nu
+        v̂ = v / nv
+        total += norm(v̂ - dot(û, v̂) * û)
         kept += 1
     end
     kept == 0 && throw(ArgumentError(

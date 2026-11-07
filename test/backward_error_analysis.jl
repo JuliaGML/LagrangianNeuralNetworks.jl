@@ -92,13 +92,6 @@ end
 end
 
 @testset "the discrete network through the chain rule ($T)" for T in REAL_ELTYPES
-    # The reference resolves `L_q̇q̇` from a second difference at step `1e-4`, so its accuracy is the
-    # round-off of the Lagrangian's own magnitude divided by that step squared, and the bracket then
-    # divides by `L_q̇q̇`. A draw whose Lagrangian is of order 5 is `3.6e-5` relative from the
-    # formula at this step and `4.9e-7` at step `1e-3`, which is the reference's error and not the
-    # formula's. This draw keeps the Lagrangian of order one, and its worst relative difference at
-    # step `1e-4` is `5.3e-7`.
-    Random.seed!(3)
     arch = DiscreteLagrangianNetwork(1; width = 4)
     nn = NeuralNetwork(arch, T)
     wide = same_network(arch, nn, Float64)
@@ -108,16 +101,24 @@ end
     δ = Float64(Δt)
     L = modified_lagrangian(nn, Δt)
     L_im = inverse_modified_lagrangian(wide, Δt)
-    h = 1.0e-4
+    # The reference takes central differences of the fourth order, whose truncation error is `O(h⁴)`:
+    # a second difference at step `h` has a round-off of `eps·|L|/h²`, and the bracket then divides by
+    # `L_q̇q̇`, which is why the step is `1e-3` rather than `1e-4`. `q̇` enters `L_d` as `δ·q̇/2`, so a
+    # step of `2e-2` in `q̇` is a step of `1e-3` on the Lagrangian's own inputs.
+    hq, hq̇ = 1.0e-3, 2.0e-2
+    weights = ((-2, 1.0), (-1, -8.0), (1, 8.0), (2, -1.0))
+    second = ((-2, -1.0), (-1, 16.0), (0, -30.0), (1, 16.0), (2, -1.0))
+    F(q, q̇) = L_im([q], [q̇])
+    slope(f, x, step) = sum(w * f(x + k * step) for (k, w) in weights) / (12 * step)
+    curve(f, x, step) = sum(w * f(x + k * step) for (k, w) in second) / (12 * step^2)
 
-    # The second-order formula on the inverse modified Lagrangian, from central differences of it.
+    # The second-order formula on the inverse modified Lagrangian, from those differences of it.
     function reference(q, q̇)
-        Lq = (L_im([q + h], [q̇]) - L_im([q - h], [q̇])) / (2h)
-        Lqq = (L_im([q + h], [q̇]) - 2 * L_im([q], [q̇]) + L_im([q - h], [q̇])) / h^2
-        Lq̇q̇ = (L_im([q], [q̇ + h]) - 2 * L_im([q], [q̇]) + L_im([q], [q̇ - h])) / h^2
-        Lqq̇ = (L_im([q + h], [q̇ + h]) - L_im([q + h], [q̇ - h]) - L_im([q - h], [q̇ + h]) +
-               L_im([q - h], [q̇ - h])) / (4 * h^2)
-        L_im([q], [q̇]) + δ^2 / 24 * ((Lq - Lqq̇ * q̇)^2 / Lq̇q̇ - Lqq * q̇^2)
+        Lq = slope(t -> F(t, q̇), q, hq)
+        Lqq = curve(t -> F(t, q̇), q, hq)
+        Lq̇q̇ = curve(v -> F(q, v), q̇, hq̇)
+        Lqq̇ = sum(w * slope(v -> F(q + k * hq, v), q̇, hq̇) for (k, w) in weights) / (12 * hq)
+        F(q, q̇) + δ^2 / 24 * ((Lq - Lqq̇ * q̇)^2 / Lq̇q̇ - Lqq * q̇^2)
     end
 
     tolerance = T === Float64 ? 1.0e-6 : 1.0e-3
@@ -138,6 +139,14 @@ end
     for Δt in (0, -0.1, NaN, Inf)
         @test_throws ArgumentError("the timestep must be positive and finite, got $Δt") modified_lagrangian(
             nn, Δt)
+    end
+
+    # A timestep is used in the parameters' element type, and one that the conversion makes zero or
+    # infinite is not the positive, finite timestep that was asked for, in either form of the analysis.
+    narrow = NeuralNetwork(DiscreteLagrangianNetwork(1; width = 4), Float32)
+    for Δt in (1.0e-46, 1.0e40)
+        @test_throws ArgumentError modified_lagrangian(oscillator(Float32), Δt)
+        @test_throws ArgumentError modified_lagrangian(narrow, Δt)
     end
 
     L = modified_lagrangian(nn, 1 // 10)

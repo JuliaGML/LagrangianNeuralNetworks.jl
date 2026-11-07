@@ -202,6 +202,8 @@ end
     reference = x -> [2 * x[1], x[2]]
     plain = energy_alignment(energy(oscillator(T)), reference, points)
     scaled = energy_alignment(energy(equivalent(T)), reference, points)
+    @test plain isa T
+    @test scaled isa T
     @test plain > 0
     @test scaled > 0
     @test abs(plain - scaled) ≤ (T === Float64 ? 1.0e-12 : 1.0e-5)
@@ -220,6 +222,14 @@ end
         E, x -> [x[1], zero(x[1])], reshape(T[0, 1 // 2], 2, 1))
     @test_throws ArgumentError("there are no points to align the energies at") energy_alignment(
         E, reference, zeros(T, 2, 0))
+end
+
+# A gradient that is not zero but whose squared norm underflows still has a direction: it makes the
+# 45° with `(1, 1)` that a gradient of order one makes.
+@testset "a gradient whose squared norm underflows ($T)" for T in REAL_ELTYPES
+    value = energy_alignment(x -> T[floatmin(T), 0], x -> T[1, 1], ones(T, 2, 1))
+    @test value isa T
+    @test abs(value - 1 / sqrt(T(2))) ≤ 4 * eps(T)
 end
 
 # ---------------------------------------------------------------- the trajectory error

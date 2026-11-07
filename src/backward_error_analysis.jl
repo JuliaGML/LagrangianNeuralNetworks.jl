@@ -34,9 +34,10 @@ blocks of the network's own input Hessian at `[q − Δt q̇/2; q + Δt q̇/2]`:
 ```
 
 The analysis is one-dimensional: a model of more than one degree of freedom throws an
-`ArgumentError`, and so does a timestep that is not positive and finite. A `q` or a `q̇` of another
-length throws a `DimensionMismatch`. A zero ``L_{\dot{q}\dot{q}}`` gives the IEEE value of the
-quotient, and no exception. The value has the element type of the network's parameters.
+`ArgumentError`, and so does a timestep that is not positive and finite in the element type of the
+parameters. A `q` or a `q̇` of another length throws a `DimensionMismatch`. A zero
+``L_{\dot{q}\dot{q}}`` gives the IEEE value of the quotient, and no exception. The value has the
+element type of the network's parameters.
 """
 function modified_lagrangian(
         model::AbstractNeuralNetworks.NeuralNetwork{<:LagrangianArchitecture}, Δt::Real)
@@ -44,7 +45,7 @@ function modified_lagrangian(
     arch = model.architecture
     ps = model.params
     T = parameter_eltype(ps)
-    δ = T(Δt)
+    δ = _check_timestep(T(Δt))
     D = LagrangianDerivatives(arch)
     (q::AbstractVector, q̇::AbstractVector) -> begin
         _check_analysis_pair(q, q̇)
@@ -61,7 +62,7 @@ function modified_lagrangian(
         Δt::Real)
     Δt = _check_scalar_analysis(model, Δt)
     T = parameter_eltype(model.params)
-    δ = T(Δt)
+    δ = _check_timestep(T(Δt))
     D = LagrangianDerivatives(model.architecture)
     ps = model.params
     L = inverse_modified_lagrangian(model, Δt)

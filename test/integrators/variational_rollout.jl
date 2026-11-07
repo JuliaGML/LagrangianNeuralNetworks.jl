@@ -77,6 +77,18 @@ function same_network(arch, nn, ::Type{T}) where {T}
     wide
 end
 
+# A hand-set `DiscreteLagrangianNetwork` of `L_d(a, b) = (a + b)²`, which is exact: `D₁L_d` and `D₂L_d`
+# are both `2(a + b)`, `D₁D₂L_d` is `2`, and the discrete Euler–Lagrange equations give
+# `q_{k+2} = −q_k − 2q_{k+1}` in one Newton step from any guess.
+function quadratic_discrete(T::DataType)
+    nn = NeuralNetwork(
+        DiscreteLagrangianNetwork(1; width = 3, nhidden = 0, activation = square), T)
+    nn.params.L1.W .= T[1 0; 0 1; 1 1]
+    nn.params.L1.b .= 0
+    nn.params.L2.W .= T[0 0 1]
+    nn
+end
+
 # ---------------------------------------------------------------- the discrete model
 
 @testset "the midpoint of the coupled network ($T)" for T in REAL_ELTYPES
@@ -137,7 +149,34 @@ end
     @test wide.params.L3.W == Float64.(nn.params.L3.W)
 
     value(x) = only(wide(reshape(x, 4, 1)))
+    basis(i) = Matrix(1.0I, 2, 2)[:, i]
+    # The weights of a central difference at the offsets `±h` and `±2h`, whose truncation error is
+    # `O(h⁴)`. The two slot derivatives take the second-order stencil of step `1e-5`, whose round-off
+    # is `eps·|L|/h`; the mixed block takes this one of step `1e-3`, because a second difference of it
+    # has a round-off of `eps·|L|/h²`, which at `1e-5` is `2e-6·|L|` and above the `1e-6` relative
+    # tolerance this testset asserts.
+    weights = ((-2, 1.0), (-1, -8.0), (1, 8.0), (2, -1.0))
     h = 1.0e-5
+    h₂ = 1.0e-3
+    # `∂/∂a_i` of the network's value by the fourth-order stencil.
+    function slope(x, y, i, step)
+        total = 0.0
+        for (k, w) in weights
+            total += w * value(vcat(x .+ k * step * basis(i), y))
+        end
+        total / (12 * step)
+    end
+    # `∂²/∂a_i∂b_j` by the same stencil in each argument.
+    function curl(x, y, i, j, step)
+        total = 0.0
+        for (k, wk) in weights, (l, wl) in weights
+
+            shift_a = k * step * basis(i)
+            shift_b = l * step * basis(j)
+            total += wk * wl * value(vcat(x .+ shift_a, y .+ shift_b))
+        end
+        total / (144 * step^2)
+    end
     tolerance = T === Float64 ? 1.0e-6 : 1.0e-3
 
     for (a, b) in ((T[0.3, -0.2], T[0.1, 0.5]), (T[-1.0, 0.4], T[0.7, -0.9]),
@@ -149,29 +188,17 @@ end
 
         af = Float64.(a)
         bf = Float64.(b)
-        gradient_b = [(value(vcat(af, bf .+ h .* Matrix(I, 2, 2)[:, j])) -
-                       value(vcat(af, bf .- h .* Matrix(I, 2, 2)[:, j]))) / (2h)
-                      for j in 1:2]
-        gradient_a = [(value(vcat(af .+ h .* Matrix(I, 2, 2)[:, i], bf)) -
-                       value(vcat(af .- h .* Matrix(I, 2, 2)[:, i], bf))) / (2h)
+        gradient_a = [(value(vcat(af .+ h .* basis(i), bf)) -
+                       value(vcat(af .- h .* basis(i), bf))) / (2h)
                       for i in 1:2]
-        hessian = [(value(vcat(af .+ h .* Matrix(I, 2, 2)[:, i], bf .+
-                                                                 h .*
-                                                                 Matrix(I, 2, 2)[:, j])) -
-                    value(vcat(af .+ h .* Matrix(I, 2, 2)[:, i], bf .-
-                                                                 h .*
-                                                                 Matrix(I, 2, 2)[:, j])) -
-                    value(vcat(af .- h .* Matrix(I, 2, 2)[:, i], bf .+
-                                                                 h .*
-                                                                 Matrix(I, 2, 2)[:, j])) +
-                    value(vcat(af .- h .* Matrix(I, 2, 2)[:, i], bf .-
-                                                                 h .*
-                                                                 Matrix(I, 2, 2)[:, j]))) /
-                   (4h^2) for i in 1:2, j in 1:2]
+        gradient_b = [(value(vcat(af, bf .+ h .* basis(j))) -
+                       value(vcat(af, bf .- h .* basis(j)))) / (2h)
+                      for j in 1:2]
+        hessian = [curl(af, bf, i, j, h₂) for i in 1:2, j in 1:2]
 
-        @test maximum(abs.(Float64.(D₂) .- gradient_b)) ≤ tolerance
-        @test maximum(abs.(Float64.(D₁) .- gradient_a)) ≤ tolerance
-        @test maximum(abs.(Float64.(D₁D₂) .- hessian)) ≤ tolerance
+        for (got, want) in ((D₂, gradient_b), (D₁, gradient_a), (D₁D₂, hessian))
+            @test maximum(abs.(Float64.(got) .- want)) ≤ tolerance * maximum(abs.(want))
+        end
     end
 end
 
@@ -188,6 +215,27 @@ end
     @test_throws ArgumentError("a continuous Lagrangian needs a timestep: build `DiscreteLagrangian(nn, Δt)`") DiscreteLagrangian(
         nn)
     @test DiscreteLagrangian(discrete) isa DiscreteLagrangian
+
+    # A timestep is used in the parameters' element type, and one that the conversion makes zero or
+    # infinite is not the positive, finite timestep that was asked for.
+    narrow = NeuralNetwork(
+        LagrangianNeuralNetwork(2; width = 2, nhidden = 0, activation = square),
+        Float32)
+    for Δt in (1.0e-46, 1.0e40)
+        @test_throws ArgumentError DiscreteLagrangian(narrow, Δt)
+    end
+end
+
+@testset "a bare discrete network is the model it already is ($T)" for T in REAL_ELTYPES
+    nn = quadratic_discrete(T)
+    q₀ = T[0.3]
+    q₁ = T[0.28]
+
+    bare = variational_rollout(nn, q₀, q₁, 3)
+    @test size(bare) == (1, 4)
+    @test eltype(bare) === T
+    @test bare[:, 3] ≈ -(q₀ .+ 2q₁)
+    @test bare == variational_rollout(DiscreteLagrangian(nn), q₀, q₁, 3)
 end
 
 # ---------------------------------------------------------------- the two-position rollout
@@ -235,11 +283,37 @@ end
     @test size(Qplain) == (2, 21)
     @test Qplain isa Matrix{T}
 
+    # The same trajectory from the momentum of the pair, one Newton step at a time. `S` is not
+    # symmetric, so a Jacobian taken transposed lands on another `q₁` and leaves another trajectory.
+    Qmomentum = variational_rollout(
+        plain, q₀, -D₁(q₀, q₁), 20; momentum = true, maxiter = 1)
+    @test size(Qmomentum) == (2, 21)
+    @test Qmomentum isa Matrix{T}
+    tolerance = T === Float64 ? 1.0e-11 : 1.0e-4
+    @test maximum(abs.(Qmomentum .- Qplain)) ≤ tolerance
+
     Qnetwork = variational_rollout(network, q₀, q₁, 20; maxiter = 1)
     Qclosed = variational_rollout(midpoint, q₀, q₁, 20; maxiter = 1)
     @test size(Qnetwork) == (2, 21)
-    tolerance = T === Float64 ? 1.0e-11 : 1.0e-4
     @test maximum(abs.(Float64.(Qnetwork) .- Float64.(Qclosed))) ≤ tolerance
+end
+
+@testset "the Newton guess is the extrapolation of the last two positions ($T)" for T in REAL_ELTYPES
+    δ = T(1 // 10)
+    guesses = Vector{T}[]
+    # The residual of this model is not its root at the guess, and `D₁L_d` records the first `c` it
+    # is asked for, which is the position the solve starts from.
+    D₁(a, b) = (isempty(guesses) && push!(guesses, copy(b)); b / δ - a)
+    D₂(a, b) = a / δ - b
+    D₁D₂(a, b) = Matrix{T}(I, 1, 1) / δ
+    model = DiscreteLagrangian(D₁, D₂, D₁D₂)
+
+    q₀ = T[1]
+    q₁ = T[9 // 10]
+    Q = variational_rollout(model, q₀, q₁, 2)
+    @test size(Q) == (1, 3)
+    @test length(guesses) == 1
+    @test guesses[1] == 2q₁ - q₀
 end
 
 @testset "the counts ($T)" for T in REAL_ELTYPES

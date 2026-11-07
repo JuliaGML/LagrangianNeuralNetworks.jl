@@ -38,8 +38,8 @@ derivatives as vectors of ``n`` entries and the mixed Hessian as an ``n\times{}n
 own: a rollout takes both from the positions.
 
 The slot derivatives and the momentum map ``p = -D_1L_d`` are those of Offen 2023, Prop. 1, and
-Ober-Blöbaum & Offen 2023, §2.3. A timestep that is not positive and finite throws an
-`ArgumentError`, and so does a bare continuous network, whose message names
+Ober-Blöbaum & Offen 2023, §2.3. A timestep that is not positive and finite in the parameters'
+element type throws an `ArgumentError`, and so does a bare continuous network, whose message names
 `DiscreteLagrangian(nn, Δt)`.
 """
 struct DiscreteLagrangian{T, N, D1T, D2T, D12T}
@@ -64,7 +64,9 @@ function DiscreteLagrangian(
     arch = nn.architecture
     ps = nn.params
     n = dim(arch) ÷ 2
-    δ = parameter_eltype(ps)(Δt)
+    # The timestep is used in the parameters' element type, so it is that value which has to be
+    # positive and finite: `1.0e-46` underflows to zero in `Float32` and `1.0e40` overflows to `Inf`.
+    δ = _check_timestep(parameter_eltype(ps)(Δt))
     D = LagrangianDerivatives(arch)
     _discrete_lagrangian(parameter_eltype(ps), n,
         (a, b) -> begin
@@ -206,16 +208,11 @@ function variational_rollout(model, q₀::AbstractVector, q₁::AbstractVector, 
         _discrete_model(model), q₀, q₁, N; momentum, tol, maxiter)
 end
 
-# The model a rollout integrates: a `DiscreteLagrangian` as it stands, a discrete network as the
-# discrete Lagrangian it already is, and a continuous network refused, since the midpoint rule that
-# would turn it into one needs a timestep.
+# The model a rollout integrates: a `DiscreteLagrangian` as it stands, and a network as the discrete
+# Lagrangian of its architecture — itself, for a `DiscreteLagrangianArchitecture` — and an
+# `ArgumentError` for a continuous one, whose midpoint rule needs a timestep.
 _discrete_model(model::DiscreteLagrangian) = model
-function _discrete_model(nn::AbstractNeuralNetworks.NeuralNetwork{<:DiscreteLagrangianArchitecture})
-    DiscreteLagrangian(nn)
-end
-function _discrete_model(nn::AbstractNeuralNetworks.NeuralNetwork{<:LagrangianArchitecture})
-    throw(ArgumentError("a continuous Lagrangian needs a timestep: build `DiscreteLagrangian(nn, Δt)`"))
-end
+_discrete_model(model) = DiscreteLagrangian(model)
 
 # Newton's method on one residual, with a residual test before the first step and after each one.
 # A residual that is not finite stops at once, since the step it would ask for is not defined.
@@ -233,9 +230,11 @@ function _newton(residual::F, jacobian::J, guess, tol, maxiter::Integer, label) 
         "the discrete Euler–Lagrange solve for $label did not reach the tolerance in $maxiter Newton steps"))
 end
 
-# The position `c` that solves `D₂L_d(a, b) + D₁L_d(b, c) = 0`, from the guess `2b − a`.
+# The position `c` that solves `D₂L_d(a, b) + D₁L_d(b, c) = 0`, from the guess `2b − a`. The first
+# term does not depend on `c`, so it is evaluated once rather than at every Newton step.
 function _solve_next(model::DiscreteLagrangian, a, b, tol, maxiter::Integer, index::Integer)
-    residual(c) = model.D₂(a, b) + model.D₁(b, c)
+    previous = model.D₂(a, b)
+    residual(c) = previous + model.D₁(b, c)
     jacobian(c) = model.D₁D₂(b, c)
     _newton(residual, jacobian, 2b - a, tol, maxiter, _position_name(index))
 end

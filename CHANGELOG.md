@@ -112,14 +112,15 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `q_{k+1}` by Newton's method, with `D₁D₂L_d(q_k, ·)` as the Jacobian and `2q_k − q_{k−1}` as the
   guess, to `‖residual‖₂ ≤ tol` with `tol = sqrt(eps(T))` by default and at most `maxiter` steps.
   `momentum = true` reads the second argument as the momentum `p₀ = −D₁L_d(q₀, q₁)` and recovers
-  `q₁` from the guess `q₀` first. `N = 0` returns `q₀` alone. `N < 0`, a `tol` that is not positive
-  and a `maxiter` below one throw an `ArgumentError`; positions of another length than each other
-  or than the network's throw a `DimensionMismatch`; a continuous network passed without a timestep
-  an `ArgumentError` naming `DiscreteLagrangian(nn, Δt)`; a singular Jacobian a
-  `SingularException`; and a solve that does not reach `tol`, or whose residual is not finite
-  before the first step, an `ErrorException` naming the position as `q_k`. The element type of the
-  result is the parameters' for a network and `float(promote_type(eltype(q₀), eltype(q₁)))` for a
-  model of functions.
+  `q₁` from the guess `q₀` first. `N = 0` returns `q₀` alone, and `DiscreteLagrangian(nn, Δt)`
+  refuses a timestep that is not positive and finite in the parameters' element type. `N < 0`, a
+  `tol` that is not positive and a `maxiter` below one throw an `ArgumentError`; positions of
+  another length than each other or than the network's throw a `DimensionMismatch`; a continuous
+  network passed without a timestep an `ArgumentError` naming `DiscreteLagrangian(nn, Δt)`; a
+  singular Jacobian a `SingularException`; and a solve that does not reach `tol`, or whose residual
+  is not finite at an iterate, an `ErrorException` naming the position as `q_k`. The element type
+  of the result is the parameters' for a network and `float(promote_type(eltype(q₀), eltype(q₁)))`
+  for a model of functions.
 * **`modified_lagrangian(model, Δt)`, the second-order backward error analysis from the inverse
   modified Lagrangian to the true one (Ober-Blöbaum & Offen 2023, (11); Lishkova 2023, (4)).** For
   one degree of freedom it returns `(q, q̇) ↦ L + (Δt²/24)[(L_q − L_qq̇·q̇)²/L_q̇q̇ − L_qq·q̇²]`,
@@ -127,8 +128,8 @@ so that a compat-only bump can be told apart from a rename or a change in result
   for a discrete one, whose derivatives are the chain rule through the midpoint. The `+` direction
   recovers the frequency of the harmonic oscillator to `O(Δt⁴)`, where the opposite sign gives
   `O(Δt²)`. A model of more than one degree of freedom and a timestep that is not positive and
-  finite throw an `ArgumentError`, a `q` or `q̇` of another length a `DimensionMismatch`, and a
-  zero `L_q̇q̇` gives the IEEE value of the quotient without an exception.
+  finite in the parameters' element type throw an `ArgumentError`, a `q` or `q̇` of another length a
+  `DimensionMismatch`, and a zero `L_q̇q̇` gives the IEEE value of the quotient without an exception.
 * **`energy`, `acceleration_error`, `energy_alignment` and `trajectory_error`, the gauge-invariant
   measures of a learned model (Offen 2025, §7.3; Ober-Blöbaum & Offen 2023, §3.1).**
   `energy(model)` is a callable `(q, q̇) ↦ q̇ᵀ∂_q̇L − L`, of the element type of the network's

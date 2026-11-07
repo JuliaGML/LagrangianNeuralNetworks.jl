@@ -76,8 +76,9 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `randn(Float32, 2, 8)` and `randn(Float32, 1, 8)` gives the sum of its value at `weight = 0` and
   of the `1.0f0` that its `MixedHessianRegulariser(arch, 1.0e-46)` gives at the zero `Λ`; and
   `inverse_modified_lagrangian(NeuralNetwork(DiscreteLagrangianNetwork(1; width = 4), CPU(),
-  Float32), 1.0e-46)` gives `Inf32` on a `Float32` vector of length 1 and `Float32[Inf Inf Inf]` on
-  a `1 × 3` pair.
+  Float32), 1.0e-46)` gives `±Inf32` on a `Float32` vector of length 1 and
+  `Float32[±Inf ±Inf ±Inf]` on a `1 × 3` pair, because the timestep is `0.0f0` there: the value is
+  the network's output divided by zero, and the sign of each entry is the draw's.
 
 ### K10 · A training with `LNNLoss` does not lower the loss on the whole data set on every draw.
 

@@ -3,17 +3,24 @@
 `LagrangianNeuralNetworks` learns a scalar Lagrangian ``L(q, \dot{q})`` with a neural network, and
 takes the dynamics from that Lagrangian through the Euler–Lagrange equations.
 
-It exports the architecture `LagrangianNeuralNetwork`, its supertype
-[`LagrangianArchitecture`](@ref LagrangianNeuralNetworks.LagrangianArchitecture), its default
-activation [`softplus`](@ref LagrangianNeuralNetworks.softplus), the wrapper
+It exports the architectures `LagrangianNeuralNetwork` and
+[`DiscreteLagrangianNetwork`](@ref LagrangianNeuralNetworks.DiscreteLagrangianNetwork), their
+supertypes [`LagrangianArchitecture`](@ref LagrangianNeuralNetworks.LagrangianArchitecture) and
+[`DiscreteLagrangianArchitecture`](@ref LagrangianNeuralNetworks.DiscreteLagrangianArchitecture),
+the default activation [`softplus`](@ref LagrangianNeuralNetworks.softplus), the wrapper
 [`NormalisedLagrangian`](@ref LagrangianNeuralNetworks.NormalisedLagrangian), which fixes the
-value and the momentum of a Lagrangian at one point, and three losses:
+value and the momentum of a Lagrangian at one point, and four losses:
 [`LNNLoss`](@ref LagrangianNeuralNetworks.LNNLoss), which compares the acceleration
 that the learned Lagrangian predicts against accelerations in the data,
 [`EulerLagrangeLoss`](@ref LagrangianNeuralNetworks.EulerLagrangeLoss), which asks the learned
-Lagrangian to satisfy the Euler–Lagrange equations on the same data with no solve, and
+Lagrangian to satisfy the Euler–Lagrange equations on the same data with no solve,
 [`VariationalMidpointLoss`](@ref LagrangianNeuralNetworks.VariationalMidpointLoss), which needs
-positions only. [`RegularisedLoss`](@ref LagrangianNeuralNetworks.RegularisedLoss) adds weighted
+positions only, and
+[`DiscreteEulerLagrangeLoss`](@ref LagrangianNeuralNetworks.DiscreteEulerLagrangeLoss), which
+trains a discrete Lagrangian on positions through the discrete Euler–Lagrange equations.
+[`inverse_modified_lagrangian`](@ref LagrangianNeuralNetworks.inverse_modified_lagrangian) reads
+the continuous Lagrangian that a discrete one stands for.
+[`RegularisedLoss`](@ref LagrangianNeuralNetworks.RegularisedLoss) adds weighted
 penalties to any of them: the regularity penalties
 [`VelocityHessianRegulariser`](@ref LagrangianNeuralNetworks.VelocityHessianRegulariser) and
 [`MixedHessianRegulariser`](@ref LagrangianNeuralNetworks.MixedHessianRegulariser), and the scale

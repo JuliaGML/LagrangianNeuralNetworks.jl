@@ -27,7 +27,8 @@ using Symbolics: Symbolics, @register_derivative, @register_symbolic
 The supertype of an architecture whose network is a scalar Lagrangian ``L(q, \\dot{q})`` of an
 input that stacks ``q`` on ``\\dot{q}``.
 
-The losses of this package take any `LagrangianArchitecture`. A subtype needs two methods:
+The losses of a continuous Lagrangian take any `LagrangianArchitecture`; the discrete loss takes a
+[`DiscreteLagrangianArchitecture`](@ref). A subtype needs two methods:
 `AbstractNeuralNetworks.dim(arch)`, the input dimension ``2n``, and `Chain(arch)`, a chain with a
 scalar output. Without a `dim` method, `AbstractNeuralNetworks` logs an error and returns
 `nothing`, and the constructor of a loss fails there.

@@ -340,12 +340,13 @@ end
 
 @doc raw"""
 A plain `Ld` is a function of two positions, so its matrix call must be that function on one column
-pair at a time: the `b`-th entry of `f(Q, V)` is `Ld(Q[:, b], V[:, b]) / Δt`, never a value that
-`Ld` computed from the whole matrix. A `Ld` written for a pair of vectors works whether it returns a
-number or a one-element array, it is handed a pair of vectors and never a matrix, and the result is
-in the element type of `Q` whatever precision `Ld` or the network returns. The matrix path is built
-without writing into an array, so `Zygote` differentiates it, and each column of the slope is the
-slope of the same scalar at that column's pair.
+pair at a time: the `b`-th entry of `f(Q, V)` is `Ld` at that column's shifted pair,
+`Ld(Q[:, b] - Δt * V[:, b] / 2, Q[:, b] + Δt * V[:, b] / 2) / Δt`, never a value that
+`Ld` computed from the whole matrix. A `Ld` written for a pair of vectors works whether it
+returns a number or a one-element array, it is handed a pair of vectors and never a matrix, and
+the result is in the element type of `Q` whatever precision `Ld` or the network returns. The
+matrix path is built without writing into an array, so `Zygote` differentiates it, and each
+column of the slope is the slope of the same scalar at that column's pair.
 """
 function test_inverse_modified_lagrangian_plain_matrix(T::DataType; n = 2, Δt = 0.1,
         batch_size = 3)

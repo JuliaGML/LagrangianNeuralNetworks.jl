@@ -73,15 +73,15 @@ is that ``L`` exactly.
 discrete Lagrangian.
 
 The result `f` is called as `f(q, q̇)`: a scalar for vectors `q` and `q̇`, and a `1 × B` array for
-`n × B` matrices, in the element type of `q`, which ``\Delta{}t`` is converted to. A plain `Ld` that
-returns a single number for a whole matrix, evaluating no column of it by itself, gives that number
-in every column. A `q̇` of another size than `q` throws a `DimensionMismatch`, and so does a `q` of
-another row count than ``n`` with the network method; a timestep that is not positive and finite
-throws an `ArgumentError`.
+`n × B` matrices, in the element type of `q`, which ``\Delta{}t`` is converted to. A plain `Ld` is
+called on one pair of positions, two vectors, at a time, and must return a number or a one-element
+array. A `q̇` of another size than `q` throws a `DimensionMismatch`, and so does a `q` of another row
+count than ``n`` with the network method; a timestep that is not positive and finite throws an
+`ArgumentError`.
 """
 function inverse_modified_lagrangian(Ld::Function, Δt::Real)
     Δt = _check_timestep(Δt)
-    (q, q̇) -> _inverse_modified_value(Ld, q, q̇, Δt)
+    (q::AbstractArray, q̇::AbstractArray) -> _plain_inverse_modified(Ld, q, q̇, Δt)
 end
 
 function inverse_modified_lagrangian(
@@ -92,21 +92,36 @@ function inverse_modified_lagrangian(
     (q::AbstractArray, q̇::AbstractArray) -> begin
         size(q, 1) == n ||
             throw(DimensionMismatch("q has $(size(q, 1)) rows, and the architecture needs $n"))
-        _inverse_modified_value((a, b) -> nn(vcat(a, b)), q, q̇, Δt)
+        δ, a, b = _inverse_modified_positions(q, q̇, Δt)
+        value = nn(vcat(a, b)) / δ
+        q isa AbstractVector && return eltype(q)(only(value))
+        convert(Matrix{eltype(q)}, value)
     end
 end
 
-# The value of the inverse modified Lagrangian at the pair `(q, q̇)`: `Ld` at the two positions
-# `q ∓ Δt·q̇/2`, divided by `Δt`. A scalar for a vector `q`, a `1 × B` array for an `n × B` one, in
-# the element type of `q`, which `Δt` is converted to: a `Float64` timestep must not widen the
-# Lagrangian of a `Float32` network.
-function _inverse_modified_value(Ld, q::AbstractArray, q̇::AbstractArray, Δt)
+# The timestep in the element type of `q`, and the two positions `q ∓ Δt·q̇/2` that the discrete
+# Lagrangian is read at: one formation of them for both methods, and the one place that converts
+# `Δt`, since a `Float64` timestep must not widen a `Float32` Lagrangian.
+function _inverse_modified_positions(q::AbstractArray, q̇::AbstractArray, Δt)
     size(q) == size(q̇) ||
         throw(DimensionMismatch("q and q̇ differ in size: $(size(q)) and $(size(q̇))"))
     δ = eltype(q)(Δt)
-    value = Ld(q - δ * q̇ / 2, q + δ * q̇ / 2) / δ
-    q isa AbstractVector && return only(value)
-    # A `Ld` that evaluates the samples together returns the `1 × B` array; one that returns a single
-    # number for the whole matrix gives it in every column.
-    value isa AbstractArray ? value : fill(value, 1, size(q, 2))
+    (δ, q - δ * q̇ / 2, q + δ * q̇ / 2)
+end
+
+# A plain `Ld` takes one pair of positions, so a batch is one call per column pair: `Ld` is never
+# handed a matrix, and the `b`-th entry is the value at `(q[:, b], q̇[:, b])`. An empty batch is a
+# `1 × 0` array.
+function _plain_inverse_modified(Ld, q::AbstractMatrix, q̇::AbstractMatrix, Δt)
+    δ, a, b = _inverse_modified_positions(q, q̇, Δt)
+    value = Matrix{eltype(q)}(undef, 1, size(q, 2))
+    for column in eachindex(value)
+        value[column] = only(Ld(@view(a[:, column]), @view(b[:, column]))) / δ
+    end
+    value
+end
+
+function _plain_inverse_modified(Ld, q::AbstractVector, q̇::AbstractVector, Δt)
+    δ, a, b = _inverse_modified_positions(q, q̇, Δt)
+    eltype(q)(only(Ld(a, b)) / δ)
 end

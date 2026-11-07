@@ -325,14 +325,6 @@ function test_inverse_modified_lagrangian_identity(T::DataType; n = 2, Δt = 0.1
         @test isapprox(f(q, v), L(q, v); atol = 100 * eps(T))
     end
 
-    # A plain `Ld` that returns one number for a whole matrix, evaluating no column by itself, gives
-    # that number in each column of the `1 × B` array that the network method gives.
-    Q, V = randn(T, n, 3), randn(T, n, 3)
-    matrix = f(Q, V)
-    @test matrix isa Matrix{T}
-    @test size(matrix) == (1, 3)
-    @test all(==(Ld(Q - δ * V / 2, Q + δ * V / 2) / δ), matrix)
-
     _, nn = hod(T, δ)
     g = inverse_modified_lagrangian(nn, Δt)
     for _ in 1:25
@@ -344,6 +336,78 @@ end
 
 @testset "the midpoint of a Lagrangian gives that Lagrangian back ($T)" for T in REAL_ELTYPES
     test_inverse_modified_lagrangian_identity(T)
+end
+
+@doc raw"""
+A plain `Ld` is a function of two positions, so its matrix call must be that function on one column
+pair at a time: the `b`-th entry of `f(Q, V)` is `Ld(Q[:, b], V[:, b]) / Δt`, never a value that
+`Ld` computed from the whole matrix. A `Ld` written for a pair of vectors works whether it returns a
+number or a one-element array, and the result is in the element type of `Q` whatever precision `Ld`
+or the network returns.
+"""
+function test_inverse_modified_lagrangian_plain_matrix(T::DataType; n = 2, Δt = 0.1,
+        batch_size = 3)
+    δ = T(Δt)
+    L(q, v) = (sum(abs2, v) - sum(abs2, q)) / 2 + T(0.3) * q[1] * v[2]
+    Ld(a, b) = δ * L((a + b) / 2, (b - a) / δ)
+
+    Q = 2 .* rand(T, n, batch_size) .- 1
+    V = 2 .* rand(T, n, batch_size) .- 1
+    f = inverse_modified_lagrangian(Ld, Δt)
+
+    # One value per column, that of the same pair called alone, and none of them the whole matrix's.
+    matrix = f(Q, V)
+    @test matrix isa Matrix{T}
+    @test size(matrix) == (1, batch_size)
+    for b in 1:batch_size
+        @test isapprox(matrix[1, b], L(Q[:, b], V[:, b]); atol = 100 * eps(T))
+        @test isapprox(matrix[1, b], f(Q[:, b], V[:, b]); rtol = 8 * eps(T))
+    end
+
+    # A `Ld` that returns a one-element array per pair, from the reduction itself and from its
+    # `vec`. Both are the midpoint form, whose column is `sum(abs2, V[:, b])/2`.
+    Ldvec(a, b) = vec(sum(abs2, b - a; dims = 1)) / (2 * δ)
+    Ldrow(a, b) = sum(abs2, b - a; dims = 1) / (2 * δ)
+    for Ldpair in (Ldvec, Ldrow)
+        values = inverse_modified_lagrangian(Ldpair, Δt)(Q, V)
+        @test values isa Matrix{T}
+        @test size(values) == (1, batch_size)
+        for b in 1:batch_size
+            @test isapprox(values[1, b], sum(abs2, V[:, b]) / 2; atol = 100 * eps(T))
+        end
+    end
+
+    # The result is in the element type of `q`, not in that of what `Ld` returns.
+    other = T === Float32 ? Float64 : Float32
+    Lother(a, b) = other(sum(abs2, b - a)) / (2 * other(δ))
+    g = inverse_modified_lagrangian(Lother, Δt)
+    @test g(Q[:, 1], V[:, 1]) isa T
+    @test g(Q, V) isa Matrix{T}
+    @test size(g(Q, V)) == (1, batch_size)
+
+    # A network of the other precision does not widen the result either.
+    nn = NeuralNetwork(DiscreteLagrangianNetwork(n; width = 4), CPU(), other)
+    h = inverse_modified_lagrangian(nn, Δt)
+    @test h(Q[:, 1], V[:, 1]) isa T
+    @test h(Q, V) isa Matrix{T}
+    @test size(h(Q, V)) == (1, batch_size)
+
+    # `Ld` never sees the matrix: one call per column pair, each in the element type of `q`,
+    # although the timestep given here is a `Float64`.
+    seen = DataType[]
+    recording(a, b) = (push!(seen, eltype(a)); sum(abs2, b - a) / (2 * δ))
+    inverse_modified_lagrangian(recording, 0.1)(Q, V)
+    @test length(seen) == batch_size
+    @test all(==(T), seen)
+
+    # An empty batch is a `1 × 0` array of the same type, not an error.
+    empty = f(zeros(T, n, 0), zeros(T, n, 0))
+    @test empty isa Matrix{T}
+    @test size(empty) == (1, 0)
+end
+
+@testset "a plain Ld on vector pairs and on a matrix ($T)" for T in REAL_ELTYPES
+    test_inverse_modified_lagrangian_plain_matrix(T)
 end
 
 # ---------------------------------------------------------------- the decided edges

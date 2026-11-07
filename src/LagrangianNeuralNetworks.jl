@@ -9,8 +9,8 @@ using AbstractNeuralNetworks: AbstractNeuralNetworks, AbstractExplicitLayer, Arc
                               dim,
                               initialparameters
 import AbstractNeuralNetworks: Chain
-using NeuralNetworkParameters: NetworkParameters, params
-using LinearAlgebra: RowMaximum, det, issuccess, lu, norm
+using NeuralNetworkParameters: NetworkParameters, parameter_eltype, params
+using LinearAlgebra: RowMaximum, det, dot, issuccess, lu, norm
 using Random: AbstractRNG
 # A derivative rule for the determinant of a penalty, which `Zygote` takes.
 import ChainRulesCore
@@ -44,11 +44,16 @@ include("loss/euler_lagrange_loss.jl")
 include("loss/regularisers.jl")
 include("loss/variational_midpoint_loss.jl")
 include("loss/discrete_euler_lagrange_loss.jl")
+include("integrators/variational_rollout.jl")
+include("backward_error_analysis.jl")
+include("evaluation.jl")
 
 export LagrangianArchitecture, LagrangianNeuralNetwork, NormalisedLagrangian, softplus
 export EulerLagrangeLoss, LNNLoss, VariationalMidpointLoss
 export DiscreteEulerLagrangeLoss, DiscreteLagrangianNetwork, inverse_modified_lagrangian
 export RegularisedLoss, VelocityHessianRegulariser, MixedHessianRegulariser
 export ScaleCondition, DiscreteScaleCondition
+export DiscreteLagrangian, variational_rollout, modified_lagrangian
+export energy, acceleration_error, energy_alignment, trajectory_error
 
 end

@@ -140,8 +140,8 @@ end
 nothing # hide
 ```
 
-All four networks have one hidden layer of width 4 and are trained in the same way, with Adam for
-200 epochs in batches of 20:
+All four networks have two hidden layers of width 4 and are trained in the same way, with Adam
+for 200 epochs in batches of 20:
 
 ```@example lnn
 function train(arch, loss, input, output)

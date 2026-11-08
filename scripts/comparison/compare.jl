@@ -66,7 +66,7 @@ const FD_STEP = 1e-4              # the central differences of the discrete netw
 const ROLLOUT_STEPS = smoke_size(100, 5)
 const WIDTH = b -> smoke_size(b.width, 2)
 
-# The sizes that depend on the number of positions `n`, indexed by `n`.
+# Sizes that depend on `n`: a scalar serves the `n` named beside it; a tuple is indexed by `n`.
 const ACCELERATION_GRID = smoke_size(21, 5)         # points per axis of the grid, n = 1
 const ACCELERATION_SAMPLES = smoke_size(400, 50)    # uniform samples of the box, n = 2
 const TRAJECTORIES = (smoke_size(10, 2), smoke_size(20, 2))

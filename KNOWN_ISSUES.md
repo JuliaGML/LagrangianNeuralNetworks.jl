@@ -149,3 +149,24 @@ least-squares fit `L ≈ a·NN + b` on that grid.
   `OberBlobaum_2021` entries and no 2023 paper.
   The equation number of a measure is therefore not available in this tree, and the section number
   the sources are cited by is what a reader can follow.
+
+## Found by the comparison
+
+### K13 · Under the protocol of the comparison, the `LNNLoss` training of the harmonic oscillator and of the pendulum reaches a loss of `NaN`.
+
+- **location:** `src/loss/lnn_loss.jl:121`
+- **kind:** defect
+- **found:** 2026-11-08
+- **evidence:**
+  `scripts/comparison/compare.jl` at commit `f674d1d`, run in full with
+  `julia --startup-file=no --project=scripts scripts/comparison/compare.jl`, writes the `lnn` rows
+  of `scripts/comparison/results/harmonic_oscillator.csv` and `pendulum.csv` as `failed`, and warns
+  "the final loss is NaN" for both. The network is
+  `LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)`, trained on the
+  21 × 21 grid of the box with Adam at `linesearch = 1e-2`, `Batch(20)` and 200 epochs after
+  `Random.seed!(1234)`. The same training, with its history read, has its first non-finite loss at
+  epoch 14 on both benchmarks, after a loss of 0.146 on the harmonic oscillator and 0.136 on the
+  pendulum. `EulerLagrangeLoss` on a `NormalisedLagrangian` of the same network, on the same data,
+  ends at a loss of 3.5e-4 and 1.7e-4. `LNNLoss` solves against the velocity Hessian of the network
+  and `EulerLagrangeLoss` does not; whether a singular velocity Hessian in a minibatch gives the
+  `NaN` is not checked.

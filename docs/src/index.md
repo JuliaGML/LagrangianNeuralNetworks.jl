@@ -39,4 +39,8 @@ nn = NeuralNetwork(arch)
 loss = LNNLoss(arch)
 ```
 
-The page [Lagrangian Neural Network](@ref) derives the loss and documents the functions.
+The page [Lagrangian Neural Network](@ref) describes each method with its source, and documents
+the functions.
+The [tutorial](@ref lnn_tutorial) trains the harmonic oscillator with each of the four losses and
+compares the results through measures that do not depend on which of the many equivalent
+Lagrangians a network learns. The [references](@ref "References") list the sources of the methods.

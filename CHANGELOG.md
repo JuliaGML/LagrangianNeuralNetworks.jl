@@ -144,6 +144,25 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `acceleration_error`; wrong sizes throw a `DimensionMismatch`; a zero reference acceleration, an
   empty batch, and an alignment with no point left throw an `ArgumentError`; and a singular
   velocity Hessian a `SingularException`.
+* **The manual has a tutorial, a section per method with its source, and a References page; the
+  README example learns the harmonic oscillator.** This fixes K4: a Lagrangian is unique at best up
+  to a factor, a constant and a total time derivative, and in one dimension inequivalent
+  Lagrangians give the same equations of motion, so a learned Lagrangian is not comparable with
+  the true one, and the manual did not say so.
+  * The tutorial, *Learning the Harmonic Oscillator*, trains `L = (q̇² − q²)/2` with `LNNLoss`,
+    with `EulerLagrangeLoss` on a `NormalisedLagrangian` with a `ScaleCondition`, with
+    `VariationalMidpointLoss` and with a `DiscreteLagrangianNetwork`, each at width 4 under a fixed
+    seed. For each model it plots the learned acceleration against the true one, the level sets of
+    the learned energy against the true ones at levels matched through the points `(q, 0)`, and a
+    rollout against the exact solution, and it closes with a table of `acceleration_error`,
+    `energy_alignment` and `trajectory_error`.
+  * The architecture page has a section per method, which cites its source beside the method's
+    `@docs` entries, and the section *The Non-Uniqueness of a Lagrangian*, which names the gauge
+    and the three measures. The References page lists the eight sources of
+    `docs/src/LagrangianNeuralNetworks.bib`, through DocumenterCitations.
+  * The README installs the package and GeometricMachineLearning with one `Pkg.add`, trains
+    `LNNLoss` on the accelerations of the harmonic oscillator on a grid in place of random targets,
+    prints `acceleration_error`, and links the tutorial and the architecture page.
 
 ### Tests
 
@@ -192,6 +211,9 @@ so that a compat-only bump can be told apart from a rename or a change in result
     stops with `FieldError: type Core.TypeName has no field mt`; Aqua 0.8.14 adapts to the method
     tables of Julia 1.12. Aqua 0.8.0 also reports 21 method ambiguities of other packages and fails
     its persistent-task check here.
+* **The docs environment adds CairoMakie (`"0.15"`), DocumenterCitations (`"1"`) and
+  GeometricMachineLearning (`"0.9"`)**, for the figures, the citations and the training of the
+  tutorial, and `docs/make.jl` sets `edit_link = "main"`.
 
 ### Bug Fixes
 

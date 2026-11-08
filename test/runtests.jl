@@ -8,6 +8,9 @@ if "core" in GROUPS
     @safetestset "The Euler–Lagrange solve on the pendulum's Lagrangian" include("loss/lnn_loss.jl")
     @safetestset "The architecture and softplus" include("architectures/lagrangian_neural_network.jl")
     @safetestset "The compiled input derivatives" include("derivatives.jl")
+    @safetestset "The variational rollout of a learned model" include("integrators/variational_rollout.jl")
+    @safetestset "The backward error analysis" include("backward_error_analysis.jl")
+    @safetestset "The measures of a learned model" include("evaluation.jl")
 end
 if "slow" in GROUPS
     @safetestset "Lagrangian Neural Network" include("architectures/lagrangian_neural_network_tests.jl")

@@ -132,3 +132,20 @@ least-squares fit `L ≈ a·NN + b` on that grid.
   up to a factor, a constant and a total time derivative, and in one dimension inequivalent
   Lagrangians give the same equations of motion. A comparison of the learned and the true
   Lagrangian is therefore not a measure of the result; the manual does not say so.
+
+## Found in review
+
+### K12 · The docstrings of the four measures cite a section of their source, not an equation number.
+
+- **location:** `src/evaluation.jl`
+- **kind:** docs
+- **found:** 2026-11-07
+- **evidence:**
+  `energy`, `acceleration_error` and `trajectory_error` cite "Offen 2025, §7.3", and
+  `energy_alignment` cites "Ober-Blöbaum & Offen 2023, §3.1", where the rule of the build asks a
+  method for "author, year and equation number". Neither paper is held:
+  `ls ~/Research/Library/papers/ | grep -i offen` gives `Offen_2022_SymplecticIntegration…` and
+  `Offen_2023_LearningDiscreteLagrangians…`, and `grep -i ober` gives the `OberBlobaum_2013` to
+  `OberBlobaum_2021` entries and no 2023 paper.
+  The equation number of a measure is therefore not available in this tree, and the section number
+  the sources are cited by is what a reader can follow.

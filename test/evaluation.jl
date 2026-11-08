@@ -220,7 +220,7 @@ end
     # Only the reference's gradient is zero at this point, and it is left out as well.
     @test_throws ArgumentError("every point has a zero energy gradient, and its alignment is not defined") energy_alignment(
         E, x -> [x[1], zero(x[1])], reshape(T[0, 1 // 2], 2, 1))
-    # Only the position's gradient is zero at this point, and it is left out as well.
+    # Only the energy's gradient is zero at this point, and it is left out as well.
     @test_throws ArgumentError("every point has a zero energy gradient, and its alignment is not defined") energy_alignment(
         x -> zeros(T, 2), x -> T[1, 1], ones(T, 2, 1))
     @test_throws ArgumentError("there are no points to align the energies at") energy_alignment(
@@ -233,6 +233,17 @@ end
     value = energy_alignment(x -> T[floatmin(T), 0], x -> T[1, 1], ones(T, 2, 1))
     @test value isa T
     @test abs(value - 1 / sqrt(T(2))) ≤ 4 * eps(T)
+end
+
+# A non-zero gradient whose largest entry is 0 and whose other entry is negative still has a
+# direction: `(−1, 0)` is at 135° to `(1, 1)`, and its `|sin θ|` is `1/√2`.
+@testset "a gradient whose largest entry is zero ($T)" for T in REAL_ELTYPES
+    value = energy_alignment(x -> T[-1, 0], x -> T[1, 1], ones(T, 2, 1))
+    @test value isa T
+    @test abs(value - 1 / sqrt(T(2))) ≤ 8 * eps(T)
+    swapped = energy_alignment(x -> T[1, 1], x -> T[-1, 0], ones(T, 2, 1))
+    @test swapped isa T
+    @test abs(swapped - 1 / sqrt(T(2))) ≤ 8 * eps(T)
 end
 
 # A gradient parallel to `(1, 1)` stays parallel at either end of the range: at `floatmax` its norm

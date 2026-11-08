@@ -91,9 +91,10 @@ The columns of a table:
 - **training time (s)**: the seconds from the construction of the loss to the end of `train!`;
 - **final loss**: the last entry of the loss history of `train!`, the mean of the minibatch losses
   of the last epoch, whose scale differs from one loss to another;
-- **status**: `ok`; `diverged` where the rollout fails, with no trajectory error; `failed` where
-  the training or the measuring fails, with no acceleration error, energy alignment, trajectory
-  error or final loss.
+- **status**: `ok`; `diverged` where the rollout throws or is not finite, with no trajectory
+  error; `failed` where the training or the measuring throws, or the final loss, the acceleration
+  error or the energy alignment is not finite, with no acceleration error, energy alignment,
+  trajectory error or final loss.
 
 A continuous network is rolled out as the midpoint discrete Lagrangian
 `DiscreteLagrangian(nn, Δt)`. The `DiscreteLagrangianNetwork` is rolled out as itself, and measured

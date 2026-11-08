@@ -89,7 +89,8 @@ The columns of a table:
   of 100 steps of ``\Delta{}t`` from the first two positions of the reference trajectory and that
   trajectory;
 - **training time (s)**: the seconds from the construction of the loss to the end of `train!`;
-- **final loss**: the loss of the last epoch, whose scale differs from one loss to another;
+- **final loss**: the last entry of the loss history of `train!`, the mean of the minibatch losses
+  of the last epoch, whose scale differs from one loss to another;
 - **status**: `ok`; `diverged` where the rollout fails, with no trajectory error; `failed` where
   the training or the measuring fails, with no acceleration error, energy alignment, trajectory
   error or final loss.

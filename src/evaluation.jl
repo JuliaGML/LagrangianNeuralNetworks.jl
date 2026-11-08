@@ -129,8 +129,8 @@ end
     energy_alignment(E, E_ref, points)
 
 The mean over the columns `x` of `points` of ``|\sin\theta|``, the angle between ``\nabla E(x)``
-and ``\nabla E_{ref}(x)``: 1 where the two energies single out the same level sets at that point
-and 0 where their gradients are parallel.
+and ``\nabla E_{ref}(x)``. It is 0 where the two energies single out the same level sets at that
+point, whose gradients are then parallel, and 1 where those gradients are perpendicular.
 
 This is the measure ``\nu`` of Ober-Blöbaum & Offen 2023, §3.1, the mean of
 ``|\det(\nabla E_{ref}/\|\nabla E_{ref}\|, \nabla E/\|\nabla E\|)|``, which their two-dimensional
@@ -161,8 +161,8 @@ function energy_alignment(E, E_ref, points::AbstractMatrix)
         # Each gradient is divided by its largest absolute entry before it is normalised: `norm`
         # overflows to `Inf` at the top of the range, where the direction is lost, and it rounds a
         # subnormal gradient to a scale of its own, where the quotient is not a unit vector. For a
-        # finite gradient the scaled one has its largest entry at 1, so its norm lies between 1 and
-        # `√(2n)`.
+        # finite gradient the scaled one has its largest absolute entry at 1, so its norm lies
+        # between 1 and `√(2n)`.
         mu = maximum(abs, u)
         iszero(mu) && continue
         u = u / mu

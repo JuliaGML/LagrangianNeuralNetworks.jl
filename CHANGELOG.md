@@ -169,7 +169,7 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `test/evaluation.jl` checks the energy of the oscillator and of an equivalent Lagrangian, the
   relative acceleration error of a coupled network against its scaled reference, the alignment
   against the two-dimensional determinant and in four dimensions, and the trajectory error. Every
-  numeric testset runs in `Float32` and `Float64` and asserts the element type of its result.
+  numeric testset runs in `Float32` and `Float64`.
 
 ### Maintenance
 

@@ -28,8 +28,7 @@ the measure of a learned model whose level sets are compared with those of a ref
 (Offen 2025, §7.3). A Lagrangian is unique only up to a scale, a constant and a total time
 derivative, and the energy changes with exactly the first two: under
 ``L \mapsto \rho L + c + \frac{d}{dt}F(q)`` it becomes ``\rho E - c``. Its value therefore carries
-the gauge, and its *gradient* carries only the factor ``\rho``, which leaves its direction, and so
-the level sets, unchanged.
+the gauge, and its *gradient* carries only the factor ``\rho``, so its level sets are unchanged.
 
 The field `gradient` of the result is the gradient of the energy with respect to the state
 ``x = [q; \dot{q}]``,
@@ -140,7 +139,7 @@ This is the measure ``\nu`` of Ober-Blöbaum & Offen 2023, §3.1, the mean of
 ``|\det(\nabla E_{ref}/\|\nabla E_{ref}\|, \nabla E/\|\nabla E\|)|``, which their two-dimensional
 benchmarks use and which generalises to a state of ``2n > 2`` entries as the sine of the angle. It
 is invariant under the gauge ``L \mapsto \rho L + c + \frac{d}{dt}F(q)``, which multiplies
-``\nabla E`` by the same factor ``\rho`` at every point and leaves its direction unchanged.
+``\nabla E`` by the same factor ``\rho`` at every point, so ``|\sin\theta|`` is unchanged.
 
 `points` is a ``2n\times{}B`` matrix of states. Each of `E` and `E_ref` is the result of
 [`energy`](@ref), whose `gradient` is used, or a function `x ↦ ∇E(x)` of a state that returns the

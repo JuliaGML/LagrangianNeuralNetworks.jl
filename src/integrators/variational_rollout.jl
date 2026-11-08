@@ -165,7 +165,8 @@ not reach `tol` in `maxiter` steps throws an `ErrorException` naming the positio
 
 The element type `T` of the result is the parameters' for a network model and
 `float(promote_type(eltype(q₀), eltype(q₁)))` for a model of functions, and the positions are
-converted to it. `model` is a [`DiscreteLagrangian`](@ref) or a `NeuralNetwork` of a
+converted to it, as is the momentum with `momentum = true`. `model` is a
+[`DiscreteLagrangian`](@ref) or a `NeuralNetwork` of a
 [`DiscreteLagrangianArchitecture`](@ref); a continuous network throws an `ArgumentError` naming
 `DiscreteLagrangian(nn, Δt)`.
 
@@ -239,8 +240,11 @@ function _solve_next(model::DiscreteLagrangian, a, b, tol, maxiter::Integer, ind
     _newton(residual, jacobian, 2b - a, tol, maxiter, _position_name(index))
 end
 
-# The position `b` that solves the momentum map `−D₁L_d(a, b) = p`, from the guess `a`.
+# The position `b` that solves the momentum map `−D₁L_d(a, b) = p`, from the guess `a`. The momentum
+# is a summand of the residual, so it is converted to the positions' element type, which its own
+# would otherwise decide for the whole solve.
 function _solve_momentum(model::DiscreteLagrangian, a, p, tol, maxiter::Integer)
+    p = eltype(a).(p)
     residual(b) = model.D₁(a, b) + p
     jacobian(b) = model.D₁D₂(a, b)
     _newton(residual, jacobian, copy(a), tol, maxiter, _position_name(1))

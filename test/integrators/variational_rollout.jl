@@ -1,5 +1,5 @@
 using LagrangianNeuralNetworks
-using LagrangianNeuralNetworks: DiscreteLagrangian, variational_rollout
+using LagrangianNeuralNetworks: DiscreteLagrangian, _solve_momentum, variational_rollout
 using AbstractNeuralNetworks: NeuralNetwork
 using LinearAlgebra: I, SingularException
 using Test
@@ -435,4 +435,21 @@ end
     end
     @test error isa ErrorException
     @test occursin("q_1", error.msg)
+end
+
+@testset "the momentum is solved in the parameters' type ($T)" for T in REAL_ELTYPES
+    # A momentum of a strictly wider floating-point type: the residual's `D₁ + p` would promote the
+    # whole solve into that type, where `T` is the parameters'.
+    wide = T === Float32 ? Float64 : BigFloat
+    model = DiscreteLagrangian(coupled(T), 1 // 10)
+    q₀ = T[3 // 10, -1 // 5]
+    p₀ = wide[1 // 4, -1 // 10]
+
+    step = _solve_momentum(model, q₀, p₀, sqrt(eps(T)), 20)
+    @test eltype(step) === T
+
+    # The two rollouts do the same arithmetic once the momentum is converted, so they agree exactly.
+    Q = variational_rollout(model, q₀, p₀, 5; momentum = true)
+    @test eltype(Q) === T
+    @test Q == variational_rollout(model, q₀, T.(p₀), 5; momentum = true)
 end

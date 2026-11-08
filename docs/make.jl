@@ -1,5 +1,6 @@
 using LagrangianNeuralNetworks
 using Documenter
+using DocumenterCitations
 using DocumenterInterLinks
 
 # GeometricMachineLearning trains the network on ReducedComplexityModeling's `Batch`, whose
@@ -8,20 +9,26 @@ links = InterLinks(
     "ReducedComplexityModeling" => "https://juliarcm.github.io/ReducedComplexityModeling.jl/stable/"
 )
 
+# The sources each method section cites, listed on the References page.
+bib = CitationBibliography(joinpath(@__DIR__, "src", "LagrangianNeuralNetworks.bib"))
+
 makedocs(;
     modules = [LagrangianNeuralNetworks],
     sitename = "LagrangianNeuralNetworks.jl",
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", nothing) == "true",
         repolink = "https://github.com/JuliaGML/LagrangianNeuralNetworks.jl",
-        canonical = "https://juliagml.github.io/LagrangianNeuralNetworks.jl"
+        canonical = "https://juliagml.github.io/LagrangianNeuralNetworks.jl",
+        edit_link = "main"
     ),
     pages = [
         "Home" => "index.md",
         "Comparison" => "comparison.md",
-        "Lagrangian Neural Network" => "architectures/lagrangian_neural_network.md"
+        "Lagrangian Neural Network" => "architectures/lagrangian_neural_network.md",
+        "Tutorial" => "tutorials/lagrangian_neural_network.md",
+        "References" => "references.md"
     ],
-    plugins = [links]
+    plugins = [bib, links]
 )
 
 deploydocs(;

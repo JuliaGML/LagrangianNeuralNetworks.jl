@@ -111,28 +111,6 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `MethodError: objects of type DiscreteLagrangianNetwork{typeof(softplus)} are not callable.`,
   rather than an `ArgumentError` at construction.
 
-## Found while writing the tutorial
-
-The probes below train on the harmonic oscillator, `L(q, q̇) = (q̇² − q²)/2` in one dimension,
-under `Random.seed!(1234)`, with `LagrangianNeuralNetwork(2; width = 4, nhidden = 1)`, a
-`TrainingOptimizer` with `algorithm = Adam()` and `linesearch = 1e-2`, `Batch(20)` and 200 epochs,
-against GeometricMachineLearning 0.9.0. Each number is one draw. "Acceleration error" is the
-largest `|q̈_NN + q|` on a 21 × 21 grid of `[-1, 1]²`; "fit error" is the largest error of the
-least-squares fit `L ≈ a·NN + b` on that grid.
-
-### K4 · The learned Lagrangian is not the true one beyond scale and offset, even where the dynamics are learned.
-
-- **location:** —
-- **kind:** docs
-- **found:** 2026-11-03
-- **evidence:**
-  With softplus, the fit error is 0.53 after `LNNLoss` on 400 uniform samples of `[-1, 1]²` with
-  `q̈ = −q`, and 0.51 after `VariationalMidpointLoss` on 400 triples of `q(t) = A cos(t + φ)` with
-  `Δt = 0.1`, on a grid where `L` itself ranges over `[-0.5, 0.5]`. A Lagrangian is unique at best
-  up to a factor, a constant and a total time derivative, and in one dimension inequivalent
-  Lagrangians give the same equations of motion. A comparison of the learned and the true
-  Lagrangian is therefore not a measure of the result; the manual does not say so.
-
 ## Found in review
 
 ### K12 · The docstrings of the four measures cite a section of their source, not an equation number.
@@ -149,3 +127,25 @@ least-squares fit `L ≈ a·NN + b` on that grid.
   `OberBlobaum_2021` entries and no 2023 paper.
   The equation number of a measure is therefore not available in this tree, and the section number
   the sources are cited by is what a reader can follow.
+
+## Found while writing the tutorial
+
+### K13 · A training with `VariationalMidpointLoss` does not learn the harmonic oscillator on every draw.
+
+- **location:** `src/loss/variational_midpoint_loss.jl`
+- **kind:** defect
+- **found:** 2026-11-08
+- **evidence:**
+  The data are 400 triples `q(t) = a cos(t + φ)` at `t = 0, Δt, 2Δt` with `Δt = 0.1`, `a` uniform
+  in `[0.2, 1]` and `φ` in `[0, 2π)`, drawn after `Random.seed!(1234)` in `Float64`, as the
+  tutorial draws them. `LagrangianNeuralNetwork(2; width = 4)` is trained with
+  `VariationalMidpointLoss(arch, 0.1)`, its default regulariser, Adam with `linesearch = 1e-2`,
+  `Batch(20)` and 200 epochs, against GeometricMachineLearning 0.9.0. The loss draws from the
+  global random number generator when it is built, so the order matters. With the loss built once
+  before `Random.seed!(seed)`, `acceleration_error` on the `21 × 21` grid of `[-1, 1]²` against
+  `q̈ = −q` is 0.039, 0.035 and 0.053 for the seeds 1, 2 and 4, with a last loss of `3.1e-7`,
+  `4.1e-7` and `2.8e-6`, and 1.0025 for the seed 3, whose last loss is `3.4e-4`; with
+  `regulariser = DiscreteScaleCondition(arch, 0.1; base = zeros(2), value = 1.0)` in place of the
+  default, the same four seeds give 0.050, 0.100, 0.081 and 0.103. With the loss built after
+  `Random.seed!(seed)`, as the tutorial builds it, the seed 1 gives 0.086 and the seed 3 gives
+  1.0005. Four seeds do not give a rate.

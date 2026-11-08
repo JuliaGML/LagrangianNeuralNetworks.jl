@@ -22,25 +22,39 @@ exported. `RegularisedLoss` adds weighted penalties to any of them: the regulari
 
 The training — the data loader, the batches, the optimiser and `train!` — is
 [GeometricMachineLearning.jl](https://github.com/JuliaGNI/GeometricMachineLearning.jl)'s. This
-package does not depend on it, so add it yourself, at version 0.9:
+package does not depend on it, so install the two together:
 
 ```julia
 using Pkg
-Pkg.add(name = "GeometricMachineLearning", version = "0.9")
+Pkg.add(["LagrangianNeuralNetworks", "GeometricMachineLearning"])
 ```
 
-Then load it by explicit names beside this package:
+Then load GeometricMachineLearning by explicit names beside this package. The example learns the
+harmonic oscillator, `L = (q̇² − q²)/2`, from its acceleration `q̈ = −q` on a grid of states, and
+prints the relative error of the acceleration that the learned Lagrangian predicts there:
 
 ```julia
 using LagrangianNeuralNetworks
-using GeometricMachineLearning: Adam, Batch, DataLoader, NeuralNetwork, TrainingOptimizer, train!
+using GeometricMachineLearning: CPU, Adam, Batch, DataLoader, NeuralNetwork, TrainingOptimizer,
+                                train!
 
-arch = LagrangianNeuralNetwork(2; width = 4, nhidden = 1)
-nn = NeuralNetwork(arch)
-input, output = randn(2, 60), randn(1, 60)  # (q, q̇) stacked, and q̈
-dl = DataLoader(input, output)
-optimizer = TrainingOptimizer(nn.params; algorithm = Adam())
-train!(nn, optimizer, dl, Batch(10), 30; loss = LNNLoss(arch))
+# The states [q; q̇] on a 21 × 21 grid of [-1, 1]², and the acceleration q̈ = −q at each.
+input = hcat([[q, q̇] for q in -1:0.1:1 for q̇ in -1:0.1:1]...)
+output = -input[1:1, :]
+
+arch = LagrangianNeuralNetwork(2; width = 4)
+nn = NeuralNetwork(arch, CPU(), Float64)
+dl = DataLoader(input, output; suppress_info = true)
+optimizer = TrainingOptimizer(nn.params; algorithm = Adam(), linesearch = 1e-2)
+train!(nn, optimizer, dl, Batch(21), 200; loss = LNNLoss(arch), show_progress = false)
+
+println("acceleration error: ", acceleration_error(nn, input, output))
 ```
 
-`scripts/reproduction/lnn_pendulum.jl` trains the network on the pendulum.
+The [tutorial](https://juliagml.github.io/LagrangianNeuralNetworks.jl/dev/tutorials/lagrangian_neural_network/)
+trains four models of the oscillator, two on accelerations and two on positions only, and compares
+them through measures that do not depend on which of the many equivalent Lagrangians a network
+learns. The
+[architecture page](https://juliagml.github.io/LagrangianNeuralNetworks.jl/dev/architectures/lagrangian_neural_network/)
+describes each method with its source. `scripts/reproduction/lnn_pendulum.jl` trains the network
+on the pendulum.

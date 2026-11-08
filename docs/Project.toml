@@ -5,6 +5,9 @@ DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
 DocumenterInterLinks = "d12716ef-a0f6-4df4-a9f1-a5a34e75c656"
 GeometricMachineLearning = "194d25b2-d3f5-49f0-af24-c124f4aa80cc"
 LagrangianNeuralNetworks = "da14487d-6bdb-4394-b62e-76fc1472c3eb"
+Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [sources]
 LagrangianNeuralNetworks = {path = ".."}

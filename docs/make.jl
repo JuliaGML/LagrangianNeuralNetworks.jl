@@ -23,6 +23,7 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
+        "Comparison" => "comparison.md",
         "Lagrangian Neural Network" => "architectures/lagrangian_neural_network.md",
         "Tutorial" => "tutorials/lagrangian_neural_network.md",
         "References" => "references.md"

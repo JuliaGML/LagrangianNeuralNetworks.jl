@@ -111,23 +111,6 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   `MethodError: objects of type DiscreteLagrangianNetwork{typeof(softplus)} are not callable.`,
   rather than an `ArgumentError` at construction.
 
-## Found in review
-
-### K12 · The docstrings of the four measures cite a section of their source, not an equation number.
-
-- **location:** `src/evaluation.jl`
-- **kind:** docs
-- **found:** 2026-11-07
-- **evidence:**
-  `energy`, `acceleration_error` and `trajectory_error` cite "Offen 2025, §7.3", and
-  `energy_alignment` cites "Ober-Blöbaum & Offen 2023, §3.1", where the rule of the build asks a
-  method for "author, year and equation number". Neither paper is held:
-  `ls ~/Research/Library/papers/ | grep -i offen` gives `Offen_2022_SymplecticIntegration…` and
-  `Offen_2023_LearningDiscreteLagrangians…`, and `grep -i ober` gives the `OberBlobaum_2013` to
-  `OberBlobaum_2021` entries and no 2023 paper.
-  The equation number of a measure is therefore not available in this tree, and the section number
-  the sources are cited by is what a reader can follow.
-
 ## Found while writing the tutorial
 
 ### K13 · A training with `VariationalMidpointLoss` does not learn the harmonic oscillator on every draw.
@@ -149,3 +132,67 @@ What is known to be wrong in LagrangianNeuralNetworks and is not fixed.
   default, the same four seeds give 0.050, 0.100, 0.081 and 0.103. With the loss built after
   `Random.seed!(seed)`, as the tutorial builds it, the seed 1 gives 0.086 and the seed 3 gives
   1.0005. Four seeds do not give a rate.
+
+## Found in review
+
+### K12 · The docstrings of the four measures cite a section of their source, not an equation number.
+
+- **location:** `src/evaluation.jl`
+- **kind:** docs
+- **found:** 2026-11-07
+- **evidence:**
+  `energy`, `acceleration_error` and `trajectory_error` cite "Offen 2025, §7.3", and
+  `energy_alignment` cites "Ober-Blöbaum & Offen 2023, §3.1", where the rule of the build asks a
+  method for "author, year and equation number". Neither paper is held:
+  `ls ~/Research/Library/papers/ | grep -i offen` gives `Offen_2022_SymplecticIntegration…` and
+  `Offen_2023_LearningDiscreteLagrangians…`, and `grep -i ober` gives the `OberBlobaum_2013` to
+  `OberBlobaum_2021` entries and no 2023 paper.
+  The equation number of a measure is therefore not available in this tree, and the section number
+  the sources are cited by is what a reader can follow.
+
+## Found by the comparison
+
+### K14 · Under the protocol of the comparison, the `LNNLoss` training of the harmonic oscillator and of the pendulum reaches a loss of `NaN`.
+
+- **location:** `src/loss/lnn_loss.jl:121`
+- **kind:** defect
+- **found:** 2026-11-08
+- **evidence:**
+  `scripts/comparison/compare.jl` at commit `f674d1d`, run in full with
+  `julia --startup-file=no --project=scripts scripts/comparison/compare.jl`, writes the `lnn` rows
+  of `scripts/comparison/results/harmonic_oscillator.csv` and `pendulum.csv` as `failed`, and warns
+  "the final loss is NaN" for both. The network is
+  `LagrangianNeuralNetwork(2; width = 4, nhidden = 1, activation = softplus)`, trained on the
+  21 × 21 grid of the box with Adam at `linesearch = 1e-2`, `Batch(20)` and 200 epochs after
+  `Random.seed!(1234)`. The same training, with its history read, has its first non-finite loss at
+  epoch 14 on both benchmarks, after a loss of 0.146 on the harmonic oscillator and 0.136 on the
+  pendulum. `EulerLagrangeLoss` on a `NormalisedLagrangian` of the same network, on the same data,
+  ends at a loss of 3.5e-4 and 1.7e-4. `LNNLoss` solves against the velocity Hessian of the network
+  and `EulerLagrangeLoss` does not; whether a singular velocity Hessian in a minibatch gives the
+  `NaN` is not checked.
+
+### K15 · The last digits of a `VariationalMidpointLoss` row with `n = 2` differ between runs of the same code.
+
+- **location:** `scripts/comparison/compare.jl`
+- **kind:** found late
+- **found:** 2026-11-08
+- **evidence:**
+  Two full runs of `julia --startup-file=no --project=scripts scripts/comparison/compare.jl`, at
+  commit `f674d1d` and at `93f0857`, whose code under `src/` and `scripts/` differs only in a
+  comment of the script, write the same measures and final loss in every row except the
+  `variational_midpoint` rows of the coupled oscillator, Hénon–Heiles and the double pendulum,
+  which differ by up to 1e-11 relative. The acceleration error is 0.13290256594040553 and
+  0.13290256594040578 on the coupled oscillator, 0.36096109808651955 and 0.36096109808651966 on
+  Hénon–Heiles, and 0.9686218642283121 and 0.9686218642320793 on the double pendulum, whose
+  trajectory error is 3.143292486981392 and 3.143292486999025. The values agree to the three
+  significant digits that `docs/src/comparison.md` prints.
+  At `bbc798b`, a process that includes `compare.jl` and calls its `run_row` on the double
+  pendulum gives, for the `variational_midpoint` row run alone, the acceleration error
+  0.9686218642283121 and the trajectory error 3.143292486981392 in each of two fresh processes:
+  the values of the run at `f674d1d`, not those of the committed run at `93f0857`. Run after the
+  `lnn` and `euler_lagrange` rows of the same benchmark in one process, the row gives
+  0.9686218642284424 and 3.1432924869819274, and the `euler_lagrange` row before it gives the
+  acceleration error 0.3212480625822604, where both full runs write 0.32124806258225447. A row's
+  last digits therefore depend on what the process ran before it, although every row reseeds its
+  random draw. The cause is not located; the order in which the symbolic layer compiles its
+  functions is a guess.

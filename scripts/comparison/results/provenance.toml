@@ -1,0 +1,7 @@
+command = "julia --startup-file=no --project=scripts scripts/comparison/compare.jl"
+commit = "93f085702f1b3895ea0de2b973fc7db6607563dd"
+date = "2026-11-08T13:21:31+0100"
+dirty = false
+julia = "1.13.3"
+smoke = false
+total_training_time = 926.8462681770325

@@ -144,6 +144,23 @@ so that a compat-only bump can be told apart from a rename or a change in result
   `acceleration_error`; wrong sizes throw a `DimensionMismatch`; a zero reference acceleration, an
   empty batch, and an alignment with no point left throw an `ArgumentError`; and a singular
   velocity Hessian a `SingularException`.
+* **`scripts/comparison/compare.jl`, the comparison of the four methods over five benchmarks, and
+  the manual page "Comparison" that shows its results.** The script trains `LNNLoss`,
+  `EulerLagrangeLoss` on a `NormalisedLagrangian` with a `ScaleCondition`,
+  `VariationalMidpointLoss` and the `DiscreteLagrangianNetwork` with `DiscreteEulerLagrangeLoss` on
+  the harmonic oscillator, the coupled oscillator of Offen 2025, §5.1, the pendulum, Hénon–Heiles
+  with `α = 0.8` and the double pendulum, with one fixed protocol, and writes one CSV per benchmark
+  with the acceleration error, the energy alignment, the trajectory error of a variational rollout,
+  the training time, the final loss and a status of `ok`, `diverged` or `failed` per method, and a
+  `provenance.toml` with the command, the commit and whether the tree had local changes under
+  `src/` or `scripts/`. The benchmarks, their closed-form accelerations and the RK4 integrator of
+  the reference trajectories are in `scripts/comparison/benchmarks.jl`. The results of the full run
+  are committed under `scripts/comparison/results/`, and `docs/src/comparison.md` reads them when
+  the manual is built. In that run the `LNNLoss` training of the harmonic oscillator and of the
+  pendulum reaches a loss of `NaN` (K14). Under `LNN_SMOKE` the script needs an output directory,
+  so a smoke run does not overwrite the committed results. `scripts/Project.toml` lists `Random`
+  and `TOML`, which the script loads, and `docs/Project.toml` lists `Markdown`, `Printf` and
+  `TOML`, which the page loads.
 * **The manual has a tutorial, a section per method with its source, and a References page; the
   README example learns the harmonic oscillator.** This fixes K4: a Lagrangian is unique at best up
   to a factor, a constant and a total time derivative, and in one dimension inequivalent

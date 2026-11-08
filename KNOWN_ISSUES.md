@@ -145,6 +145,7 @@ least-squares fit `L ≈ a·NN + b` on that grid.
   `energy_alignment` cites "Ober-Blöbaum & Offen 2023, §3.1", where the rule of the build asks a
   method for "author, year and equation number". Neither paper is held:
   `ls ~/Research/Library/papers/ | grep -i offen` gives `Offen_2022_SymplecticIntegration…` and
-  `Offen_2023_LearningDiscreteLagrangians…`, and `grep -i ober` gives no Ober-Blöbaum & Offen 2023.
+  `Offen_2023_LearningDiscreteLagrangians…`, and `grep -i ober` gives the `OberBlobaum_2013` to
+  `OberBlobaum_2021` entries and no 2023 paper.
   The equation number of a measure is therefore not available in this tree, and the section number
   the sources are cited by is what a reader can follow.

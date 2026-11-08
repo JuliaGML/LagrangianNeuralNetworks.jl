@@ -24,10 +24,12 @@ The energy of the continuous Lagrangian of `model`, a callable `E(q, q̇) = q̇�
 vectors of ``n`` entries, with the element type of the network's parameters.
 
 It is the quantity a trajectory conserves when the Lagrangian does not depend on time, and it is
-the measure of a learned model that the level sets of *Evaluation* compare (Offen 2025, §7.3). A
-Lagrangian is unique only up to a scale, a constant and a total time derivative, and the energy
-changes with exactly the first two: under ``L \mapsto \rho L + c + \frac{d}{dt}F(q)`` it becomes
-``\rho E - c``. Its value therefore carries the gauge, and its *gradient* does not.
+the measure of a learned model whose level sets are compared with those of a reference
+(Offen 2025, §7.3). A Lagrangian is unique only up to a scale, a constant and a total time
+derivative, and the energy changes with exactly the first two: under
+``L \mapsto \rho L + c + \frac{d}{dt}F(q)`` it becomes ``\rho E - c``. Its value therefore carries
+the gauge, and its *gradient* carries only the factor ``\rho``, which leaves its direction, and so
+the level sets, unchanged.
 
 The field `gradient` of the result is the gradient of the energy with respect to the state
 ``x = [q; \dot{q}]``,
@@ -92,13 +94,15 @@ Lagrange equations of the network predict,
 ``(\nabla_{\dot{q}}\nabla_{\dot{q}}L)^{-1}(\nabla_qL - (\nabla_q\nabla_{\dot{q}}L)^T\dot{q})``,
 which is [`lagrangian_acceleration`](@ref); both norms are those of the whole ``n\times{}B`` array.
 
-The relative error is invariant under the gauge of the data's model: it changes with the reference
-and with nothing else about the Lagrangian, because a scale cancels between the residual and the
-denominator. `model` is a `NeuralNetwork` of a [`LagrangianArchitecture`](@ref), and one of a
-[`DiscreteLagrangianArchitecture`](@ref) throws an `ArgumentError`. `x` of the wrong row count, and
-an acceleration of the wrong row or column count, throw a `DimensionMismatch`; no columns, and a
-`q̈_ref` whose norm is zero, throw an `ArgumentError`; and a singular ``\nabla_{\dot{q}}
-\nabla_{\dot{q}}L`` throws a `LinearAlgebra.SingularException`.
+The relative error is invariant under the gauge ``L \mapsto \rho L + c + \frac{d}{dt}F(q)`` of the
+learned Lagrangian, because the acceleration is: ``\rho`` cancels between the inverse velocity
+Hessian and the gradients, and ``c`` and the total derivative drop out of them. Scaling the
+reference changes the error. `model` is a `NeuralNetwork` of a
+[`LagrangianArchitecture`](@ref), and one of a [`DiscreteLagrangianArchitecture`](@ref) throws an
+`ArgumentError`. `x` of the wrong row count, and an acceleration of the wrong row or column count,
+throw a `DimensionMismatch`; no columns, and a `q̈_ref` whose norm is zero, throw an
+`ArgumentError`; and a singular ``\nabla_{\dot{q}}\nabla_{\dot{q}}L`` throws a
+`LinearAlgebra.SingularException`.
 """
 function acceleration_error(
         model::AbstractNeuralNetworks.NeuralNetwork{<:LagrangianArchitecture},
@@ -135,8 +139,8 @@ point, whose gradients are then parallel, and 1 where those gradients are perpen
 This is the measure ``\nu`` of Ober-Blöbaum & Offen 2023, §3.1, the mean of
 ``|\det(\nabla E_{ref}/\|\nabla E_{ref}\|, \nabla E/\|\nabla E\|)|``, which their two-dimensional
 benchmarks use and which generalises to a state of ``2n > 2`` entries as the sine of the angle. It
-is invariant under the gauge ``L \mapsto \rho L + c + \frac{d}{dt}F(q)``, which scales and shifts
-``\nabla E`` by the same factors and sign at every point.
+is invariant under the gauge ``L \mapsto \rho L + c + \frac{d}{dt}F(q)``, which multiplies
+``\nabla E`` by the same factor ``\rho`` at every point and leaves its direction unchanged.
 
 `points` is a ``2n\times{}B`` matrix of states. Each of `E` and `E_ref` is the result of
 [`energy`](@ref), whose `gradient` is used, or a function `x ↦ ∇E(x)` of a state that returns the

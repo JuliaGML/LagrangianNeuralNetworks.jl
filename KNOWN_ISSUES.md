@@ -170,3 +170,29 @@ least-squares fit `L ≈ a·NN + b` on that grid.
   ends at a loss of 3.5e-4 and 1.7e-4. `LNNLoss` solves against the velocity Hessian of the network
   and `EulerLagrangeLoss` does not; whether a singular velocity Hessian in a minibatch gives the
   `NaN` is not checked.
+
+### K15 · The last digits of a `VariationalMidpointLoss` row with `n = 2` differ between runs of the same code.
+
+- **location:** `scripts/comparison/compare.jl`
+- **kind:** found late
+- **found:** 2026-11-08
+- **evidence:**
+  Two full runs of `julia --startup-file=no --project=scripts scripts/comparison/compare.jl`, at
+  commit `f674d1d` and at `93f0857`, whose code under `src/` and `scripts/` differs only in a
+  comment of the script, write the same measures and final loss in every row except the
+  `variational_midpoint` rows of the coupled oscillator, Hénon–Heiles and the double pendulum,
+  which differ by up to 1e-11 relative. The acceleration error is 0.13290256594040553 and
+  0.13290256594040578 on the coupled oscillator, 0.36096109808651955 and 0.36096109808651966 on
+  Hénon–Heiles, and 0.9686218642283121 and 0.9686218642320793 on the double pendulum, whose
+  trajectory error is 3.143292486981392 and 3.143292486999025. The values agree to the three
+  significant digits that `docs/src/comparison.md` prints.
+  At `bbc798b`, a process that includes `compare.jl` and calls its `run_row` on the double
+  pendulum gives, for the `variational_midpoint` row run alone, the acceleration error
+  0.9686218642283121 and the trajectory error 3.143292486981392 in each of two fresh processes:
+  the values of the run at `f674d1d`, not those of the committed run at `93f0857`. Run after the
+  `lnn` and `euler_lagrange` rows of the same benchmark in one process, the row gives
+  0.9686218642284424 and 3.1432924869819274, and the `euler_lagrange` row before it gives the
+  acceleration error 0.3212480625822604, where both full runs write 0.32124806258225447. A row's
+  last digits therefore depend on what the process ran before it, although every row reseeds its
+  random draw. The cause is not located; the order in which the symbolic layer compiles its
+  functions is a guess.

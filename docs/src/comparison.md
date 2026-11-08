@@ -60,9 +60,12 @@ and ``\det\partial^2L/\partial\dot{q}^2(0) = 1``:
 
 Each network has one hidden layer of width 4 and the activation `softplus`, in `Float64`, and is
 trained with `Adam` at the step size `linesearch = 1e-2`, `Batch(20)`, for 200 epochs, from seed
-1234; each method sets the seed again before it builds its network, so a row does not depend on
-the rows before it. The acceleration data are the ``21 \times 21`` grid of the box for ``n = 1``
-and 400 uniform samples of it for ``n = 2``, with the closed-form acceleration of the benchmark.
+1234; each method sets the seed again before it builds its network, so the random draw of a row
+does not depend on the rows before it. The tables give each number to three significant digits,
+at which repeated runs of the script agree, except the training time; the last digits of a
+`VariationalMidpointLoss` row with ``n = 2`` can differ from one run to the next. The
+acceleration data are the ``21 \times 21`` grid of the box for ``n = 1`` and 400 uniform samples
+of it for ``n = 2``, with the closed-form acceleration of the benchmark.
 The position data are 10 trajectories of 50 steps for ``n = 1`` and 20 of 20 steps for ``n = 2``,
 from uniform states of the box, computed with the classical Runge–Kutta method at the step
 ``\Delta{}t/20`` and kept every ``\Delta{}t``.

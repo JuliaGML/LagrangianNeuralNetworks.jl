@@ -98,7 +98,13 @@ The columns of a table:
 A continuous network is rolled out as the midpoint discrete Lagrangian
 `DiscreteLagrangian(nn, Δt)`. The `DiscreteLagrangianNetwork` is rolled out as itself, and measured
 through `inverse_modified_lagrangian(nn, Δt)`, whose gradient and Hessian the script takes by
-central differences of step ``10^{-4}``. A `—` marks a value the run does not have.
+central differences of step ``10^{-4}``. Where the velocity Hessian of that Lagrangian is nearly
+singular, its acceleration error depends strongly on the step. On the coupled oscillator, the
+velocity Hessian of the trained network, taken with the steps ``10^{-2}`` and ``10^{-3}``, has a
+condition number of about ``7 \times 10^4`` at its worst point of the grid and about 70 at the
+median, and the acceleration error is ``1.49 \times 10^5`` at the step ``10^{-4}``,
+``1.09 \times 10^5`` at ``10^{-3}`` and ``4.2 \times 10^4`` at ``10^{-5}``. A `—` marks a value
+the run does not have.
 
 ## The run
 

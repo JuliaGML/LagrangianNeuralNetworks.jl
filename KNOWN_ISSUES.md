@@ -152,7 +152,7 @@ least-squares fit `L ≈ a·NN + b` on that grid.
 
 ## Found by the comparison
 
-### K13 · Under the protocol of the comparison, the `LNNLoss` training of the harmonic oscillator and of the pendulum reaches a loss of `NaN`.
+### K14 · Under the protocol of the comparison, the `LNNLoss` training of the harmonic oscillator and of the pendulum reaches a loss of `NaN`.
 
 - **location:** `src/loss/lnn_loss.jl:121`
 - **kind:** defect

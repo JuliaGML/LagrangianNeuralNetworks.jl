@@ -152,12 +152,15 @@ so that a compat-only bump can be told apart from a rename or a change in result
   with `α = 0.8` and the double pendulum, with one fixed protocol, and writes one CSV per benchmark
   with the acceleration error, the energy alignment, the trajectory error of a variational rollout,
   the training time, the final loss and a status of `ok`, `diverged` or `failed` per method, and a
-  `provenance.toml` with the command, the commit and whether the tree had local changes. The
-  benchmarks, their closed-form accelerations and the RK4 integrator of the reference trajectories
-  are in `scripts/comparison/benchmarks.jl`. The results of the full run are committed under
-  `scripts/comparison/results/`, and `docs/src/comparison.md` reads them when the manual is built.
-  Under `LNN_SMOKE` the script needs an output directory, so a smoke run does not overwrite them.
-  `scripts/Project.toml` lists `Random` and `TOML`, which the script loads.
+  `provenance.toml` with the command, the commit and whether the tree had local changes under
+  `src/` or `scripts/`. The benchmarks, their closed-form accelerations and the RK4 integrator of
+  the reference trajectories are in `scripts/comparison/benchmarks.jl`. The results of the full run
+  are committed under `scripts/comparison/results/`, and `docs/src/comparison.md` reads them when
+  the manual is built. In that run the `LNNLoss` training of the harmonic oscillator and of the
+  pendulum reaches a loss of `NaN` (K14). Under `LNN_SMOKE` the script needs an output directory,
+  so a smoke run does not overwrite the committed results. `scripts/Project.toml` lists `Random`
+  and `TOML`, which the script loads, and `docs/Project.toml` lists `Markdown`, `Printf` and
+  `TOML`, which the page loads.
 
 ### Tests
 

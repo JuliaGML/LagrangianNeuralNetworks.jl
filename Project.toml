@@ -1,6 +1,6 @@
 name = "LagrangianNeuralNetworks"
 uuid = "da14487d-6bdb-4394-b62e-76fc1472c3eb"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Michael Kraus <michael.kraus@ipp.mpg.de>"]
 
 [deps]

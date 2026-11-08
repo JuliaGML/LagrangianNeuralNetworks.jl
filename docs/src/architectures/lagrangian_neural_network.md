@@ -14,8 +14,8 @@ Poisson tensor, here the network is a Lagrangian and the dynamics come from a va
 principle.
 
 Each section below describes one method, cites its source, and documents its functions. The
-[tutorial](@ref lnn_tutorial) trains each of them on the harmonic oscillator and compares the
-results.
+[tutorial](@ref lnn_tutorial) trains four models of the harmonic oscillator with them and compares
+the results.
 
 ## The Architecture
 

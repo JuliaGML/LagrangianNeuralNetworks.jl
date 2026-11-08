@@ -52,8 +52,9 @@ println("acceleration error: ", acceleration_error(nn, input, output))
 ```
 
 The [tutorial](https://juliagml.github.io/LagrangianNeuralNetworks.jl/dev/tutorials/lagrangian_neural_network/)
-trains the oscillator with each loss of the package and compares the results through measures
-that do not depend on which of the many equivalent Lagrangians a network learns. The
+trains four models of the oscillator, two on accelerations and two on positions only, and compares
+them through measures that do not depend on which of the many equivalent Lagrangians a network
+learns. The
 [architecture page](https://juliagml.github.io/LagrangianNeuralNetworks.jl/dev/architectures/lagrangian_neural_network/)
 describes each method with its source. `scripts/reproduction/lnn_pendulum.jl` trains the network
 on the pendulum.

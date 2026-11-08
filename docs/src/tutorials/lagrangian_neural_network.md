@@ -134,7 +134,7 @@ function plot_model(title, acceleration, energy, rollout)
     ts = Δt .* (0:N)
     lines!(ax, ts, vec(Q_exact); label = "exact")
     lines!(ax, ts, vec(rollout); color = :black, linestyle = :dash, label = "learned")
-    axislegend(ax; position = :lb)
+    Legend(fig[2, 3], ax; orientation = :horizontal, framevisible = false)
     fig
 end
 nothing # hide
@@ -340,4 +340,4 @@ The networks trained on accelerations see the quantity the first measure compare
 square. The networks trained on positions see the dynamics only through one timestep, and what they
 learn is the Lagrangian whose discrete flow reproduces the data, which differs from the true one at
 order ``\Delta{}t^2``; [`modified_lagrangian`](@ref LagrangianNeuralNetworks.modified_lagrangian)
-corrects that offset. None of the four numbers needs the learned Lagrangian to equal the true one.
+corrects that offset. None of these numbers needs the learned Lagrangian to equal the true one.

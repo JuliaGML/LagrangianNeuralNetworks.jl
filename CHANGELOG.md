@@ -7,6 +7,27 @@ This package is pre-1.0, so *every* minor release is potentially breaking in the
 so that a compat-only bump can be told apart from a rename or a change in results.
 
 
+## [Unreleased] — targeting 0.3.0
+
+### Breaking Changes
+
+* **AbstractNeuralNetworks 0.10 and SymbolicNeuralNetworks 0.10 are required** (`[compat]`
+  `"0.10"` for both, from `"0.9.2"` and `"0.9"`). A compat-only change: no source line changes. Both
+  releases move to KernelAbstractions 0.10, so an environment that holds AbstractNeuralNetworks 0.9,
+  SymbolicNeuralNetworks 0.9 or KernelAbstractions 0.9 cannot install this release. On
+  KernelAbstractions 0.10, `CPU()` is the PoCL backend and `GPU` is no longer exported by
+  AbstractNeuralNetworks; this package uses neither, and `NeuralNetwork(arch, CPU(), T)` still
+  gives the parameters as `Array`s of `T`.
+
+### Maintenance
+
+* **The test, docs and scripts environments take GeometricMachineLearning 0.10** (`[compat]`
+  `"0.10"`, from `"0.9"`), the release on AbstractNeuralNetworks 0.10. The names they load from it,
+  `CPU`, `Adam`, `Batch`, `DataLoader`, `NetworkLoss`, `NetworkParameters`, `NeuralNetwork`,
+  `TrainingOptimizer`, `params` and `train!`, are all defined in 0.10, and its CHANGELOG changes
+  none of them, so no test, script or page changes.
+
+
 ## [0.2.0] — 2026-11-08
 
 ### Breaking Changes

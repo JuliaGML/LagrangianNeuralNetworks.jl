@@ -7,7 +7,7 @@ This package is pre-1.0, so *every* minor release is potentially breaking in the
 so that a compat-only bump can be told apart from a rename or a change in results.
 
 
-## [Unreleased] — targeting 0.3.0
+## [0.3.0] — 2026-11-24
 
 ### Breaking Changes
 

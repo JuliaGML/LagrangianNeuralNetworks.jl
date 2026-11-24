@@ -12,8 +12,11 @@ so that a compat-only bump can be told apart from a rename or a change in result
 ### Breaking Changes
 
 * **AbstractNeuralNetworks 0.10 and SymbolicNeuralNetworks 0.10 are required** (`[compat]`
-  `"0.10"` for both, from `"0.9.2"` and `"0.9"`). A compat-only change: no source line changes. Both
-  releases move to KernelAbstractions 0.10, so an environment that holds AbstractNeuralNetworks 0.9,
+  `"0.10"` for both, from `"0.9.2"` and `"0.9"`). The `Symbolics` floor rises from `"7"` to
+  `"7.0.2"`, the floor that SymbolicNeuralNetworks 0.10 sets, so no environment that installs this
+  release changes. A compat-only change: no source line changes. AbstractNeuralNetworks 0.10, which
+  SymbolicNeuralNetworks 0.10 requires, moves to KernelAbstractions 0.10, so an environment that
+  holds AbstractNeuralNetworks 0.9,
   SymbolicNeuralNetworks 0.9 or KernelAbstractions 0.9 cannot install this release. On
   KernelAbstractions 0.10, `CPU()` is the PoCL backend and `GPU` is no longer exported by
   AbstractNeuralNetworks; this package uses neither, and `NeuralNetwork(arch, CPU(), T)` still
